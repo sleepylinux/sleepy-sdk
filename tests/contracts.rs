@@ -86,6 +86,34 @@ fn rejects_a_plugin_entrypoint_that_escapes_its_package() {
 }
 
 #[test]
+fn rejects_a_plugin_entrypoint_with_padding() {
+    let result = validate_plugin_manifest(&fixture("plugin/invalid-padded-entrypoint.json"));
+
+    assert!(result.is_err());
+}
+
+#[test]
+fn rejects_a_backslash_separated_plugin_entrypoint() {
+    let result = validate_plugin_manifest(&fixture("plugin/invalid-backslash-entrypoint.json"));
+
+    assert!(result.is_err());
+}
+
+#[test]
+fn rejects_an_absolute_plugin_entrypoint() {
+    let result = validate_plugin_manifest(&fixture("plugin/invalid-absolute-entrypoint.json"));
+
+    assert!(result.is_err());
+}
+
+#[test]
+fn rejects_a_plugin_entrypoint_without_a_qml_extension() {
+    let result = validate_plugin_manifest(&fixture("plugin/invalid-non-qml-entrypoint.json"));
+
+    assert!(result.is_err());
+}
+
+#[test]
 fn rejects_unknown_plugin_manifest_fields() {
     let result = validate_plugin_manifest(&fixture("plugin/invalid-unknown-field.json"));
 

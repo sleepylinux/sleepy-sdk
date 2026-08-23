@@ -24,7 +24,7 @@
     "entrypoint": {
       "type": "string",
       "minLength": 5,
-      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+\\.qml$"
+      "pattern": "^(?!\\s)(?!.*\\s$)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+\\.qml$"
     },
     "surfaceKinds": {
       "type": "array",

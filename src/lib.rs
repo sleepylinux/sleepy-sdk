@@ -136,8 +136,16 @@ pub fn validate_preset(input: &str) -> Result<PresetDocument, ContractError> {
                 "builtin preset id must be {BUILTIN_PRESET_ID}"
             )));
         }
-        PresetOrigin::User if uuid::Uuid::parse_str(&document.id).is_err() => {
-            return Err(ContractError::new("user preset id must be a UUID"));
+        PresetOrigin::User
+            if uuid::Uuid::parse_str(&document.id)
+                .map(|identifier| {
+                    identifier.hyphenated().to_string() != document.id.to_ascii_lowercase()
+                })
+                .unwrap_or(true) =>
+        {
+            return Err(ContractError::new(
+                "user preset id must be a canonical hyphenated UUID",
+            ));
         }
         _ => {}
     }

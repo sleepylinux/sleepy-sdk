@@ -36,5 +36,30 @@
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "origin": { "const": "builtin" } },
+        "required": ["origin"]
+      },
+      "then": {
+        "properties": { "id": { "const": "builtin.sleepy" } }
+      }
+    },
+    {
+      "if": {
+        "properties": { "origin": { "const": "user" } },
+        "required": ["origin"]
+      },
+      "then": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$"
+          }
+        }
+      }
+    }
+  ]
 }

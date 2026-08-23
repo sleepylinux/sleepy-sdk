@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "1f4c9092-29ed-4a2d-85ca-26acfb9d12b3",
+  "name": "My Sleepy",
+  "origin": "user",
+  "basePresetId": "builtin.sleepy",
+  "layouts": {},
+  "drawers": {},
+  "keybindings": {},
+  "pluginRequirements": []
+}

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sleepy-linux.org/schemas/v1/settings.schema.json",
+  "title": "Sleepy Settings Document v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "activePresetId",
+    "appearanceMode",
+    "paletteSource",
+    "reducedMotion",
+    "effectsProfile",
+    "panelVisibility",
+    "webSearchEnabled"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "activePresetId": { "type": "string", "minLength": 1 },
+    "appearanceMode": { "enum": ["dark", "light", "system"] },
+    "paletteSource": { "enum": ["sleepy", "system", "custom"] },
+    "reducedMotion": { "type": "boolean" },
+    "effectsProfile": { "enum": ["full", "reduced", "none"] },
+    "panelVisibility": { "enum": ["always", "autoHide", "hidden"] },
+    "webSearchEnabled": { "type": "boolean" }
+  }
+}

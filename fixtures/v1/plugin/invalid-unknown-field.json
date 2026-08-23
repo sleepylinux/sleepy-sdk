@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "org.sleepy.weather",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "entrypoint": "Main.qml",
+  "surfaceKinds": ["rail"],
+  "capabilities": [],
+  "networkAccess": true
+}

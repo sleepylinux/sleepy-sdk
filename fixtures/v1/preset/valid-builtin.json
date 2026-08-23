@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "builtin.sleepy",
+  "name": "Sleepy",
+  "origin": "builtin",
+  "layouts": {
+    "default": {
+      "rail": {
+        "edge": "left",
+        "inset": true
+      }
+    }
+  },
+  "drawers": {
+    "quickSettings": {
+      "edge": "left"
+    }
+  },
+  "keybindings": {
+    "toggleQuickSettings": "Super+Space"
+  },
+  "pluginRequirements": []
+}

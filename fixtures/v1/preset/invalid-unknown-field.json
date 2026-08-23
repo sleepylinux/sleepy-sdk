@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "builtin.sleepy",
+  "name": "Sleepy",
+  "origin": "builtin",
+  "layouts": {},
+  "drawers": {},
+  "keybindings": {},
+  "pluginRequirements": [],
+  "owner": "system"
+}

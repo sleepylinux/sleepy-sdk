@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "my-sleepy",
+  "name": "My Sleepy",
+  "origin": "user",
+  "layouts": {},
+  "drawers": {},
+  "keybindings": {},
+  "pluginRequirements": []
+}

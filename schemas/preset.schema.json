@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sleepy-linux.org/schemas/v1/preset.schema.json",
+  "title": "Sleepy Preset Document v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "origin",
+    "layouts",
+    "drawers",
+    "keybindings",
+    "pluginRequirements"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "origin": { "enum": ["builtin", "user"] },
+    "basePresetId": { "type": ["string", "null"] },
+    "layouts": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "drawers": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "keybindings": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "pluginRequirements": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

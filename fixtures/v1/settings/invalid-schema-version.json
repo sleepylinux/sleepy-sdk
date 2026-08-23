@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "activePresetId": "builtin.sleepy",
+  "appearanceMode": "dark",
+  "paletteSource": "sleepy",
+  "reducedMotion": false,
+  "effectsProfile": "full",
+  "panelVisibility": "always",
+  "webSearchEnabled": true
+}

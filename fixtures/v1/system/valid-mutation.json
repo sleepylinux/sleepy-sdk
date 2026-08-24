@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "generation": 42,
+  "mutation": {
+    "capability": "audio.volume",
+    "value": 0.72
+  },
+  "snapshot": {
+    "schemaVersion": 1,
+    "generation": 42,
+    "capabilities": {
+      "network.enabled": "available",
+      "bluetooth.enabled": "unavailable",
+      "audio.volume": "available",
+      "audio.muted": "available",
+      "audio.microphoneLevel": "available",
+      "audio.microphoneMuted": "available",
+      "audio.outputDevice": "available",
+      "display.brightness": "unavailable",
+      "display.nightLightEnabled": "available",
+      "power.profile": "available",
+      "battery.status": "unavailable",
+      "media.transport": "unavailable"
+    },
+    "diagnostics": {},
+    "sessionActions": {
+      "lock": "available",
+      "logout": "available",
+      "reboot": "available",
+      "powerOff": "available"
+    },
+    "network": null,
+    "bluetooth": null,
+    "audio": {
+      "volume": 0.72,
+      "muted": false,
+      "microphoneLevel": 0.4,
+      "microphoneMuted": false,
+      "outputDeviceId": "sink.main",
+      "outputDevices": [
+        { "id": "sink.main", "label": "Sleepy Speakers", "isDefault": true }
+      ]
+    },
+    "display": null,
+    "power": {
+      "batteryLevel": null,
+      "charging": null,
+      "currentProfile": "balanced",
+      "availableProfiles": ["power-saver", "balanced", "performance"]
+    },
+    "media": null
+  }
+}

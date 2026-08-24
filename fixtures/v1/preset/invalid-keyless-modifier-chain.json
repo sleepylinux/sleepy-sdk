@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "d9900404-905e-4973-85e9-91e27a52ae27",
+  "name": "Keyless Modifier Chain",
+  "origin": "user",
+  "layouts": {},
+  "drawers": {},
+  "keybindings": {
+    "launcher.open": "Mod+Ctrl"
+  },
+  "pluginRequirements": []
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "31b5f8a8-69ce-42f7-aea9-291373b4f8fc",
+  "name": "Keyless Modifier",
+  "origin": "user",
+  "layouts": {},
+  "drawers": {},
+  "keybindings": {
+    "launcher.open": "Mod"
+  },
+  "pluginRequirements": []
+}

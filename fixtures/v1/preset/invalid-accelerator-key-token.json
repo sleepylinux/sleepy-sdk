@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "6b3ca1fc-e858-4aac-aa6c-d5e789eae88d",
+  "name": "Invalid Accelerator Key",
+  "origin": "user",
+  "layouts": {},
+  "drawers": {},
+  "keybindings": {
+    "launcher.open": "Mod+$"
+  },
+  "pluginRequirements": []
+}

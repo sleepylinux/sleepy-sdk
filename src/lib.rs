@@ -1,5 +1,37 @@
 //! Versioned public document contracts for Sleepy Linux.
 
+mod desktop;
+mod domains;
+mod events;
+mod keybindings;
+mod system;
+
+pub use events::{
+    validate_event_envelope, validate_mutation_exchange, validate_mutation_request,
+    validate_mutation_result, AudioRuntimeState, BatteryRuntimeState, BluetoothRuntimeState,
+    BrightnessRuntimeState, CapabilityAvailability, CapabilityFailure, CapabilityRecord,
+    CapabilityValue, Connectivity, DaemonCommand, EventCause, EventCauseKind, EventEnvelope,
+    LifecycleEvent, LifecycleState, MediaRuntimeState, MutationFailure, MutationRequest,
+    MutationResult, MutationStatus, NetworkRuntimeState, NightLightRuntimeState, NiriEvent,
+    NiriRuntimeState, NotificationChange, NotificationEvent, PowerProfileRuntimeState,
+    ProviderEvent, ResourceRuntimeState, RuntimeCapabilityId, RuntimeSnapshot, SessionEvent,
+    ThemeEvent, WIRE_SCHEMA_VERSION,
+};
+
+pub use keybindings::{
+    canonicalize_accelerator, packaged_reserved_keybindings, validate_keybindings,
+    validate_keybindings_with_reserved, ConflictKind, KeybindingConflict, SemanticAction,
+    KNOWN_SEMANTIC_ACTIONS,
+};
+pub use system::{
+    validate_session_action_request, validate_session_action_result,
+    validate_system_mutation_result, validate_system_snapshot, AudioOutputDevice, AudioState,
+    BluetoothState, CapabilityDiagnostic, CapabilityErrorKind, CapabilityId, CapabilityState,
+    DisplayState, MediaState, MediaTransport, NetworkState, PowerProfile, PowerState,
+    SessionAction, SessionActionRequest, SessionActionResult, SessionActionStatus, SystemMutation,
+    SystemMutationResult, SystemSnapshot,
+};
+
 use std::{
     collections::BTreeMap,
     error::Error,
@@ -17,7 +49,7 @@ pub const BUILTIN_PRESET_ID: &str = "builtin.sleepy";
 pub struct ContractError(String);
 
 impl ContractError {
-    fn new(message: impl Into<String>) -> Self {
+    pub(crate) fn new(message: impl Into<String>) -> Self {
         Self(message.into())
     }
 }
@@ -160,10 +192,7 @@ pub fn validate_preset(input: &str) -> Result<PresetDocument, ContractError> {
     for drawer_id in document.drawers.keys() {
         require_non_empty(drawer_id, "preset drawer id")?;
     }
-    for (action, binding) in &document.keybindings {
-        require_non_empty(action, "preset keybinding action")?;
-        require_non_empty(binding, "preset keybinding")?;
-    }
+    validate_keybindings(&document.keybindings)?;
     for plugin_id in &document.plugin_requirements {
         require_non_empty(plugin_id, "preset plugin requirement")?;
     }
@@ -243,3 +272,19 @@ fn validate_entrypoint(entrypoint: &str) -> Result<(), ContractError> {
 
     Ok(())
 }
+pub use desktop::{
+    validate_calendar_snapshot, validate_desktop_launch_request, validate_osd_event,
+    validate_weather_snapshot, CalendarEvent, CalendarProvider, CalendarSnapshot,
+    CalendarSourceError, DesktopLaunchRequest, ForecastPoint, OsdEvent, OsdKind, WeatherLocation,
+    WeatherProvider, WeatherSnapshot,
+};
+pub use domains::{
+    validate_hardware_capability_snapshot, validate_installation_profile,
+    validate_notification_document, validate_provider_snapshot, validate_theme_document,
+    CacheStatus, DeviceIdentifier, DeviceKind, FirstBootSnapshot, FirstBootState, FixtureMetadata,
+    HardwareCapability, HardwareCapabilitySnapshot, HardwareDeviceCapability, InstallationProfile,
+    InstallerProvider, MachineProfile, MachineSystem, NotificationAction, NotificationActionState,
+    NotificationDocument, NotificationUrgency, ProviderKind, ProviderSnapshot, ProviderStatus,
+    RollbackSnapshot, SemanticColors, ThemeAppearance, ThemeDocument, ThemeEffects, ThemeOrigin,
+    DURABLE_SCHEMA_VERSION,
+};

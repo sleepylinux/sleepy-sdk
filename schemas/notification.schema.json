@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sleepy-linux.org/schemas/v2/notification.schema.json",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "id", "applicationId", "summary", "body", "urgency", "createdAt", "read", "archived", "actions"],
+  "properties": {
+    "schemaVersion": { "const": 2 }, "id": { "type": "integer", "minimum": 1 },
+    "applicationId": { "type": "string", "minLength": 1 }, "summary": { "type": "string", "minLength": 1 },
+    "body": { "type": "string" }, "urgency": { "enum": ["low", "normal", "critical"] },
+    "createdAt": { "type": "string", "format": "date-time" }, "timeoutMs": { "type": "integer", "minimum": 0 },
+    "read": { "type": "boolean" }, "archived": { "type": "boolean" },
+    "actions": { "type": "array", "items": { "$ref": "#/$defs/action" } }
+  },
+  "$defs": { "action": { "type": "object", "additionalProperties": false, "required": ["id", "label", "state"], "properties": { "id": { "type": "string", "minLength": 1 }, "label": { "type": "string", "minLength": 1 }, "state": { "enum": ["available", "expired"] } } } }
+}

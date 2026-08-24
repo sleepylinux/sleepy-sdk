@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "generation": 41,
+  "capabilities": {
+    "network.enabled": "available"
+  },
+  "diagnostics": {},
+  "sessionActions": {
+    "lock": "available",
+    "logout": "available",
+    "reboot": "available",
+    "powerOff": "available"
+  },
+  "network": {
+    "enabled": true,
+    "connectedName": "Sleepy Wi-Fi",
+    "signalLevel": 0.82,
+    "diagnostic": "not part of v1"
+  },
+  "bluetooth": null,
+  "audio": null,
+  "display": null,
+  "power": null,
+  "media": null
+}

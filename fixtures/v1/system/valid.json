@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "generation": 41,
+  "capabilities": {
+    "network.enabled": "available",
+    "bluetooth.enabled": "unavailable",
+    "audio.volume": "available",
+    "audio.muted": "available",
+    "audio.microphoneLevel": "available",
+    "audio.microphoneMuted": "available",
+    "audio.outputDevice": "available",
+    "display.brightness": "unavailable",
+    "display.nightLightEnabled": "available",
+    "power.profile": "available",
+    "battery.status": "unavailable",
+    "media.transport": "unavailable"
+  },
+  "diagnostics": {
+    "bluetooth.enabled": {
+      "kind": "unsupported",
+      "message": "No Bluetooth adapter was found"
+    },
+    "display.brightness": {
+      "kind": "unsupported",
+      "message": "No backlight was found"
+    },
+    "battery.status": {
+      "kind": "unsupported",
+      "message": "No battery was found"
+    },
+    "media.transport": {
+      "kind": "unsupported",
+      "message": "No active media player was found"
+    }
+  },
+  "sessionActions": {
+    "lock": "available",
+    "logout": "available",
+    "reboot": "available",
+    "powerOff": "available"
+  },
+  "network": {
+    "enabled": true,
+    "connectedName": "Sleepy Wi-Fi",
+    "signalLevel": 0.82
+  },
+  "bluetooth": null,
+  "audio": {
+    "volume": 0.65,
+    "muted": false,
+    "microphoneLevel": 0.4,
+    "microphoneMuted": false,
+    "outputDeviceId": "sink.main",
+    "outputDevices": [
+      { "id": "sink.main", "label": "Sleepy Speakers", "isDefault": true },
+      { "id": "sink.headphones", "label": "Headphones", "isDefault": false }
+    ]
+  },
+  "display": {
+    "brightness": null,
+    "nightLightEnabled": false
+  },
+  "power": {
+    "batteryLevel": null,
+    "charging": null,
+    "currentProfile": "balanced",
+    "availableProfiles": ["power-saver", "balanced", "performance"]
+  },
+  "media": null
+}

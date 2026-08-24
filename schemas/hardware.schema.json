@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sleepy-linux.org/schemas/v1/hardware.schema.json",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "generation", "devices", "fixture"],
+  "properties": {
+    "schemaVersion": { "const": 1 }, "generation": { "type": "integer", "minimum": 1 },
+    "devices": { "type": "array", "items": { "$ref": "#/$defs/device" } },
+    "fixture": { "type": "object", "additionalProperties": false, "required": ["formatVersion", "recordedAt"], "properties": { "formatVersion": { "const": 1 }, "recordedAt": { "type": "string", "format": "date-time" } } }
+  },
+  "$defs": {
+    "diagnostic": { "type": "object", "additionalProperties": false, "required": ["message"], "properties": { "message": { "type": "string", "minLength": 1 } } },
+    "device": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "required": ["id", "capability", "status"], "properties": { "id": { "$ref": "#/$defs/id" }, "capability": { "$ref": "#/$defs/capability" }, "status": { "const": "available" } }, "allOf": [{ "$ref": "#/$defs/coherence" }] },
+        { "type": "object", "additionalProperties": false, "required": ["id", "capability", "status", "diagnostic"], "properties": { "id": { "$ref": "#/$defs/id" }, "capability": { "$ref": "#/$defs/capability" }, "status": { "enum": ["unavailable", "unsupported", "permissionDenied", "timeout", "parse", "error"] }, "diagnostic": { "$ref": "#/$defs/diagnostic" } }, "allOf": [{ "$ref": "#/$defs/coherence" }] }
+      ]
+    },
+    "coherence": { "oneOf": [
+      { "properties": { "id": { "required": ["kind"], "properties": { "kind": { "enum": ["cpu", "gpu"] } } }, "capability": { "const": "graphics" } } },
+      { "properties": { "id": { "required": ["kind"], "properties": { "kind": { "const": "battery" } } }, "capability": { "const": "battery" } } },
+      { "properties": { "id": { "required": ["kind"], "properties": { "kind": { "const": "backlight" } } }, "capability": { "const": "brightness" } } },
+      { "properties": { "id": { "required": ["kind"], "properties": { "kind": { "const": "bluetoothAdapter" } } }, "capability": { "const": "bluetooth" } } },
+      { "properties": { "id": { "required": ["kind"], "properties": { "kind": { "const": "audioDevice" } } }, "capability": { "const": "audio" } } },
+      { "properties": { "id": { "required": ["kind"], "properties": { "kind": { "const": "networkDevice" } } }, "capability": { "const": "network" } } },
+      { "properties": { "id": { "required": ["kind"], "properties": { "kind": { "const": "touchpad" } } }, "capability": { "const": "touchpad" } } }
+    ] },
+    "id": { "type": "object", "additionalProperties": false, "required": ["kind", "value"], "properties": { "kind": { "enum": ["cpu", "gpu", "battery", "backlight", "bluetoothAdapter", "audioDevice", "networkDevice", "touchpad"] }, "value": { "type": "string", "minLength": 1 } } },
+    "capability": { "enum": ["graphics", "battery", "brightness", "bluetooth", "audio", "network", "touchpad"] }
+  }
+}

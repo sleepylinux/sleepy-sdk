@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sleepy-linux.org/schemas/v1/theme.schema.json",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "id", "name", "origin", "appearance", "effects", "reducedMotion", "opaqueFallback", "colors"],
+  "properties": {
+    "schemaVersion": { "const": 1 }, "id": { "type": "string", "minLength": 1 }, "name": { "type": "string", "minLength": 1 },
+    "origin": { "enum": ["builtin", "user"] }, "appearance": { "enum": ["dark", "light", "system"] },
+    "effects": { "enum": ["full", "reduced", "none"] }, "reducedMotion": { "type": "boolean" }, "opaqueFallback": { "type": "boolean" },
+    "colors": { "type": "object", "additionalProperties": false, "required": ["background", "surface", "textPrimary", "textSecondary", "accent", "control"], "properties": { "background": { "$ref": "#/$defs/color" }, "surface": { "$ref": "#/$defs/color" }, "textPrimary": { "$ref": "#/$defs/color" }, "textSecondary": { "$ref": "#/$defs/color" }, "accent": { "$ref": "#/$defs/color" }, "control": { "$ref": "#/$defs/color" } } }
+  },
+  "$defs": { "color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" } }
+}

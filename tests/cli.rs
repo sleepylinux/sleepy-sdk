@@ -89,3 +89,18 @@ fn reports_mutation_specific_system_document_errors() {
         "unexpected diagnostic: {stderr}"
     );
 }
+
+#[test]
+fn rejects_modifier_only_preset_chords() {
+    for path in [
+        "fixtures/v1/preset/invalid-keyless-modifier.json",
+        "fixtures/v1/preset/invalid-keyless-modifier-chain.json",
+    ] {
+        let output = sleepy_contract()
+            .args(["validate", "preset", path])
+            .output()
+            .expect("CLI should run");
+
+        assert_eq!(output.status.code(), Some(1), "CLI must reject {path}");
+    }
+}

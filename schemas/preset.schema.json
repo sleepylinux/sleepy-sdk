@@ -34,7 +34,10 @@
       "additionalProperties": {
         "type": "string",
         "description": "Syntactic accelerator check only; duplicate modifiers, duplicate chords, known actions, and reserved chords require semantic SDK validation.",
-        "pattern": "^\\s*(?:(?:[Mm][Oo][Dd]|[Cc][Tt][Rr][Ll]|[Aa][Ll][Tt]|[Ss][Hh][Ii][Ff][Tt])\\+)*[A-Za-z0-9_]+\\s*$"
+        "pattern": "^\\s*(?:(?:[Mm][Oo][Dd]|[Cc][Tt][Rr][Ll]|[Aa][Ll][Tt]|[Ss][Hh][Ii][Ff][Tt])\\+)*[A-Za-z0-9_]+\\s*$",
+        "not": {
+          "pattern": "^\\s*(?:[Mm][Oo][Dd]|[Cc][Tt][Rr][Ll]|[Aa][Ll][Tt]|[Ss][Hh][Ii][Ff][Tt])(?:\\+(?:[Mm][Oo][Dd]|[Cc][Tt][Rr][Ll]|[Aa][Ll][Tt]|[Ss][Hh][Ii][Ff][Tt]))*\\s*$"
+        }
       }
     },
     "pluginRequirements": {

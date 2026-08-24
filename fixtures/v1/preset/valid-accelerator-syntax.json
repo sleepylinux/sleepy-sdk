@@ -8,7 +8,8 @@
   "drawers": {},
   "keybindings": {
     "launcher.open": "  mod+f1  ",
-    "surface.controlCenter.toggle": "Ctrl+XF86AudioPlay"
+    "surface.controlCenter.toggle": "Ctrl+XF86AudioPlay",
+    "window.close": "Mod+custom_key"
   },
   "pluginRequirements": []
 }

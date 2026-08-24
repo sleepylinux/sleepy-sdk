@@ -105,6 +105,29 @@ fn preset_schema_leaves_duplicate_modifiers_and_reserved_chords_to_rust() {
 }
 
 #[test]
+fn preset_schema_and_rust_reject_modifier_only_chords() {
+    let validator = schema("preset.schema.json");
+
+    for path in [
+        "preset/invalid-keyless-modifier.json",
+        "preset/invalid-keyless-modifier-chain.json",
+    ] {
+        assert!(
+            !validator.is_valid(&fixture(path)),
+            "schema must reject {path}"
+        );
+        assert!(
+            sleepy_sdk::validate_preset(
+                &std::fs::read_to_string(format!("fixtures/v1/{path}"))
+                    .expect("fixture should exist")
+            )
+            .is_err(),
+            "Rust must reject {path}"
+        );
+    }
+}
+
+#[test]
 fn system_schema_accepts_nullable_hardware_states() {
     let validator = schema("system.schema.json");
 

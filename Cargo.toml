@@ -2,7 +2,7 @@
 name = "sleepy-sdk"
 version = "0.1.0"
 edition = "2021"
-license = "MIT"
+license = "GPL-3.0-only"
 description = "Versioned public document contracts for Sleepy Linux"
 
 [lib]

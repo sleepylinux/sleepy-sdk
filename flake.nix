@@ -16,6 +16,7 @@
           version = "0.1.0";
           src = self;
           cargoLock.lockFile = ./Cargo.lock;
+          meta.license = pkgs.lib.licenses.gpl3Only;
         };
     in
     {

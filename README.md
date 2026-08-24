@@ -45,3 +45,7 @@ cargo fmt --check
 cargo clippy --all-targets -- -D warnings
 cargo test
 ```
+
+## License
+
+Licensed under GPL-3.0-only. See [LICENSE](LICENSE).

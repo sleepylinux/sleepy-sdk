@@ -68,9 +68,14 @@ fn validate_system_document(document: &str) -> Result<(), ContractError> {
             value.as_object().map(|object| {
                 if object.contains_key("mutation") || object.contains_key("snapshot") {
                     "mutation"
-                } else if object.contains_key("status") {
+                } else if object.contains_key("confirmed") {
+                    "sessionRequest"
+                } else if object.contains_key("status")
+                    || (object.contains_key("action")
+                        && (object.contains_key("generation") || object.contains_key("diagnostic")))
+                {
                     "sessionResult"
-                } else if object.contains_key("action") || object.contains_key("confirmed") {
+                } else if object.contains_key("action") {
                     "sessionRequest"
                 } else {
                     "snapshot"

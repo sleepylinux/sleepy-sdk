@@ -211,6 +211,24 @@ pub enum SystemMutation {
     MediaTransport(MediaTransport),
 }
 
+impl SystemMutation {
+    fn capability(&self) -> CapabilityId {
+        match self {
+            Self::NetworkEnabled(_) => CapabilityId::NetworkEnabled,
+            Self::BluetoothEnabled(_) => CapabilityId::BluetoothEnabled,
+            Self::AudioVolume(_) => CapabilityId::AudioVolume,
+            Self::AudioMuted(_) => CapabilityId::AudioMuted,
+            Self::AudioMicrophoneLevel(_) => CapabilityId::AudioMicrophoneLevel,
+            Self::AudioMicrophoneMuted(_) => CapabilityId::AudioMicrophoneMuted,
+            Self::AudioOutputDevice(_) => CapabilityId::AudioOutputDevice,
+            Self::DisplayBrightness(_) => CapabilityId::DisplayBrightness,
+            Self::DisplayNightLightEnabled(_) => CapabilityId::DisplayNightLightEnabled,
+            Self::PowerProfile(_) => CapabilityId::PowerProfile,
+            Self::MediaTransport(_) => CapabilityId::MediaTransport,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SystemMutationResult {
@@ -385,6 +403,12 @@ fn validate_confirmed_mutation(
     mutation: &SystemMutation,
     snapshot: &SystemSnapshot,
 ) -> Result<(), ContractError> {
+    if snapshot.capabilities.get(&mutation.capability()) != Some(&CapabilityState::Available) {
+        return Err(ContractError::new(
+            "system mutation result target capability must be available",
+        ));
+    }
+
     let confirmed = match mutation {
         SystemMutation::NetworkEnabled(value) => snapshot
             .network
@@ -431,7 +455,7 @@ fn validate_confirmed_mutation(
                 .and_then(|state| state.current_profile)
                 == Some(*value)
         }
-        SystemMutation::MediaTransport(_) => true,
+        SystemMutation::MediaTransport(_) => snapshot.media.is_some(),
     };
 
     if confirmed {

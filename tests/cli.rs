@@ -109,6 +109,39 @@ fn reports_mutation_specific_system_document_errors() {
 }
 
 #[test]
+fn rejects_mutation_results_without_available_coherent_readback() {
+    let output = sleepy_contract()
+        .args([
+            "validate",
+            "system",
+            "fixtures/v1/system/invalid-mutation-unavailable-media.json",
+        ])
+        .output()
+        .expect("CLI should run");
+
+    assert_eq!(output.status.code(), Some(1));
+}
+
+#[test]
+fn reports_missing_status_for_a_malformed_session_result() {
+    let output = sleepy_contract()
+        .args([
+            "validate",
+            "system",
+            "fixtures/v1/system/invalid-session-result-missing-status.json",
+        ])
+        .output()
+        .expect("CLI should run");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(
+        stderr.contains("missing field `status`"),
+        "unexpected diagnostic: {stderr}"
+    );
+}
+
+#[test]
 fn rejects_modifier_only_preset_chords() {
     for path in [
         "fixtures/v1/preset/invalid-keyless-modifier.json",

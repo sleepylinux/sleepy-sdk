@@ -493,6 +493,51 @@ fn system_mutation_result_validates_confirmed_readback() {
 }
 
 #[test]
+fn system_mutation_result_requires_an_available_target_capability() {
+    let source = fixture("system/valid-mutation.json");
+    let original: serde_json::Value =
+        serde_json::from_str(&source).expect("fixture should be JSON");
+
+    for state in ["unavailable", "error", "busy"] {
+        let mut candidate = original.clone();
+        candidate["snapshot"]["capabilities"]["audio.volume"] = serde_json::json!(state);
+
+        assert!(
+            validate_system_mutation_result(&candidate.to_string()).is_err(),
+            "mutation result must reject a {state} target capability"
+        );
+    }
+}
+
+#[test]
+fn system_media_transport_result_requires_a_coherent_fresh_readback() {
+    let source = fixture("system/invalid-mutation-unavailable-media.json");
+    let original: serde_json::Value =
+        serde_json::from_str(&source).expect("fixture should be JSON");
+
+    assert!(
+        validate_system_mutation_result(&original.to_string()).is_err(),
+        "unavailable media transport without media state must be rejected"
+    );
+
+    let mut available_without_media = original.clone();
+    available_without_media["snapshot"]["capabilities"]["media.transport"] =
+        serde_json::json!("available");
+    assert!(
+        validate_system_mutation_result(&available_without_media.to_string()).is_err(),
+        "available media transport still requires fresh media state"
+    );
+
+    let mut coherent = available_without_media;
+    coherent["snapshot"]["media"] = serde_json::json!({
+        "title": "Drifting Home",
+        "artist": "Night Signals",
+        "playing": true
+    });
+    assert!(validate_system_mutation_result(&coherent.to_string()).is_ok());
+}
+
+#[test]
 fn system_mutation_result_rejects_unknown_fields_and_invalid_levels() {
     let source = fixture("system/valid-mutation.json");
     let original: serde_json::Value =

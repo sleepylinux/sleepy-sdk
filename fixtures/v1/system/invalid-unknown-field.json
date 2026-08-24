@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "capabilities": {
+    "audio": "available",
+    "bluetooth": "unavailable",
+    "brightness": "unavailable",
+    "media": "unavailable",
+    "network": "available",
+    "power": "available"
+  },
+  "diagnostics": {
+    "bluetooth": {
+      "kind": "unsupported",
+      "message": "No Bluetooth adapter was found"
+    },
+    "brightness": {
+      "kind": "unsupported",
+      "message": "No backlight was found"
+    },
+    "media": {
+      "kind": "unsupported",
+      "message": "No active media player was found"
+    }
+  },
+  "network": {
+    "enabled": true,
+    "connectedName": "Sleepy Wi-Fi",
+    "signalLevel": 0.82,
+    "diagnostic": "not part of v1"
+  },
+  "bluetooth": null,
+  "audio": {
+    "volume": 0.65,
+    "muted": false,
+    "microphoneLevel": 0.4,
+    "microphoneMuted": false,
+    "outputDevice": "Sleepy Speakers"
+  },
+  "display": {
+    "brightness": null,
+    "nightLightEnabled": false
+  },
+  "power": {
+    "batteryLevel": null,
+    "charging": null,
+    "profile": "balanced"
+  },
+  "media": null
+}

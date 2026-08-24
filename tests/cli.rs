@@ -27,3 +27,31 @@ fn exits_one_for_an_invalid_document() {
 
     assert_eq!(status.code(), Some(1));
 }
+
+#[test]
+fn validates_system_documents() {
+    let valid_status = sleepy_contract()
+        .args(["validate", "system", "fixtures/v1/system/valid.json"])
+        .status()
+        .expect("CLI should run");
+    let invalid_status = sleepy_contract()
+        .args([
+            "validate",
+            "system",
+            "fixtures/v1/system/invalid-unknown-field.json",
+        ])
+        .status()
+        .expect("CLI should run");
+    let mutation_status = sleepy_contract()
+        .args([
+            "validate",
+            "system",
+            "fixtures/v1/system/valid-mutation.json",
+        ])
+        .status()
+        .expect("CLI should run");
+
+    assert_eq!(valid_status.code(), Some(0));
+    assert_eq!(invalid_status.code(), Some(1));
+    assert_eq!(mutation_status.code(), Some(0));
+}

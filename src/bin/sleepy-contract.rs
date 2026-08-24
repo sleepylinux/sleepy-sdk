@@ -1,6 +1,9 @@
 use std::{env, fs, process};
 
-use sleepy_sdk::{validate_plugin_manifest, validate_preset, validate_settings, ContractError};
+use sleepy_sdk::{
+    validate_plugin_manifest, validate_preset, validate_settings, validate_system_mutation_result,
+    validate_system_snapshot, ContractError,
+};
 
 fn main() {
     process::exit(run(env::args().skip(1)));
@@ -34,6 +37,7 @@ fn run(mut arguments: impl Iterator<Item = String>) -> i32 {
         "settings" => validate_settings(&document).map(|_| ()),
         "preset" => validate_preset(&document).map(|_| ()),
         "plugin" => validate_plugin_manifest(&document).map(|_| ()),
+        "system" => validate_system_document(&document),
         _ => {
             print_usage();
             return 2;
@@ -53,5 +57,15 @@ fn run(mut arguments: impl Iterator<Item = String>) -> i32 {
 }
 
 fn print_usage() {
-    eprintln!("usage: sleepy-contract validate <settings|preset|plugin> <path>");
+    eprintln!("usage: sleepy-contract validate <settings|preset|plugin|system> <path>");
+}
+
+fn validate_system_document(document: &str) -> Result<(), ContractError> {
+    match validate_system_snapshot(document) {
+        Ok(_) => Ok(()),
+        Err(snapshot_error) => match validate_system_mutation_result(document) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(snapshot_error),
+        },
+    }
 }

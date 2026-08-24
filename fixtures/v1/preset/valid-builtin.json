@@ -17,7 +17,7 @@
     }
   },
   "keybindings": {
-    "toggleQuickSettings": "Super+Space"
+    "surface.controlCenter.toggle": "Mod+Space"
   },
   "pluginRequirements": []
 }

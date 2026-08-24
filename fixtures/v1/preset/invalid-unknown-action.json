@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "d2096c6f-adf5-4b5f-9278-ad53f861105c",
+  "name": "Unknown Action",
+  "origin": "user",
+  "basePresetId": "builtin.sleepy",
+  "layouts": {},
+  "drawers": {},
+  "keybindings": {
+    "surface.teleport.toggle": "Mod+T"
+  },
+  "pluginRequirements": []
+}

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "5a02e1b7-6e1f-4d28-850d-dc38e364cf6f",
+  "name": "Reserved Recovery Collision",
+  "origin": "user",
+  "basePresetId": "builtin.sleepy",
+  "layouts": {},
+  "drawers": {},
+  "keybindings": {
+    "launcher.open": "Mod+Shift+escape"
+  },
+  "pluginRequirements": []
+}

@@ -30,7 +30,11 @@
     },
     "keybindings": {
       "type": "object",
-      "additionalProperties": { "type": "string", "minLength": 1 }
+      "propertyNames": { "type": "string", "pattern": "\\S" },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^(?:(?:[Mm][Oo][Dd]|[Cc][Tt][Rr][Ll]|[Aa][Ll][Tt]|[Ss][Hh][Ii][Ff][Tt])\\+)*[^+\\s]+$"
+      }
     },
     "pluginRequirements": {
       "type": "array",

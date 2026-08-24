@@ -43,3 +43,52 @@ fn plugin_schema_rejects_every_unsafe_entrypoint_fixture() {
         );
     }
 }
+
+#[test]
+fn preset_schema_accepts_canonicalizable_accelerators() {
+    let validator = schema("preset.schema.json");
+
+    assert!(validator.is_valid(&fixture("preset/valid-bindings.json")));
+}
+
+#[test]
+fn system_schema_accepts_nullable_hardware_states() {
+    let validator = schema("system.schema.json");
+
+    assert!(validator.is_valid(&fixture("system/valid.json")));
+}
+
+#[test]
+fn system_schema_rejects_unknown_fields() {
+    let validator = schema("system.schema.json");
+
+    assert!(!validator.is_valid(&fixture("system/invalid-unknown-field.json")));
+}
+
+#[test]
+fn system_schema_rejects_out_of_range_levels() {
+    let validator = schema("system.schema.json");
+    let original = fixture("system/valid.json");
+
+    for pointer in [
+        "/network/signalLevel",
+        "/audio/volume",
+        "/audio/microphoneLevel",
+        "/display/brightness",
+        "/power/batteryLevel",
+    ] {
+        let mut candidate = original.clone();
+        *candidate
+            .pointer_mut(pointer)
+            .expect("fixture pointer should exist") = serde_json::json!(1.01);
+
+        assert!(!validator.is_valid(&candidate), "{pointer} must be bounded");
+    }
+}
+
+#[test]
+fn system_schema_accepts_a_confirmed_mutation_result() {
+    let validator = schema("system.schema.json");
+
+    assert!(validator.is_valid(&fixture("system/valid-mutation.json")));
+}

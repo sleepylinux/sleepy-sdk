@@ -1,5 +1,18 @@
 //! Versioned public document contracts for Sleepy Linux.
 
+mod keybindings;
+mod system;
+
+pub use keybindings::{
+    canonicalize_accelerator, validate_keybindings, validate_keybindings_with_reserved,
+    KeybindingConflict, KeybindingConflictKind, SemanticAction, KNOWN_SEMANTIC_ACTIONS,
+};
+pub use system::{
+    validate_system_mutation_result, validate_system_snapshot, AudioState, BluetoothState,
+    CapabilityDiagnostic, CapabilityErrorKind, CapabilityState, DisplayState, MediaState,
+    NetworkState, PowerState, SystemMutationResult, SystemMutationValue, SystemSnapshot,
+};
+
 use std::{
     collections::BTreeMap,
     error::Error,
@@ -17,7 +30,7 @@ pub const BUILTIN_PRESET_ID: &str = "builtin.sleepy";
 pub struct ContractError(String);
 
 impl ContractError {
-    fn new(message: impl Into<String>) -> Self {
+    pub(crate) fn new(message: impl Into<String>) -> Self {
         Self(message.into())
     }
 }
@@ -160,10 +173,7 @@ pub fn validate_preset(input: &str) -> Result<PresetDocument, ContractError> {
     for drawer_id in document.drawers.keys() {
         require_non_empty(drawer_id, "preset drawer id")?;
     }
-    for (action, binding) in &document.keybindings {
-        require_non_empty(action, "preset keybinding action")?;
-        require_non_empty(binding, "preset keybinding")?;
-    }
+    validate_keybindings(&document.keybindings)?;
     for plugin_id in &document.plugin_requirements {
         require_non_empty(plugin_id, "preset plugin requirement")?;
     }

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "85316dbe-14c7-44a9-bf4b-a149f69bb920",
+  "name": "Conflicting Control Center",
+  "origin": "user",
+  "basePresetId": "builtin.sleepy",
+  "layouts": {},
+  "drawers": {},
+  "keybindings": {
+    "surface.controlCenter.toggle": "shift+mod+d",
+    "launcher.open": "Mod+Shift+D"
+  },
+  "pluginRequirements": []
+}

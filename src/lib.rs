@@ -1,7 +1,22 @@
 //! Versioned public document contracts for Sleepy Linux.
 
+mod desktop;
+mod domains;
+mod events;
 mod keybindings;
 mod system;
+
+pub use events::{
+    validate_event_envelope, validate_mutation_exchange, validate_mutation_request,
+    validate_mutation_result, AudioRuntimeState, BatteryRuntimeState, BluetoothRuntimeState,
+    BrightnessRuntimeState, CapabilityAvailability, CapabilityFailure, CapabilityRecord,
+    CapabilityValue, Connectivity, DaemonCommand, EventCause, EventCauseKind, EventEnvelope,
+    LifecycleEvent, LifecycleState, MediaRuntimeState, MutationFailure, MutationRequest,
+    MutationResult, MutationStatus, NetworkRuntimeState, NightLightRuntimeState, NiriEvent,
+    NiriRuntimeState, NotificationChange, NotificationEvent, PowerProfileRuntimeState,
+    ProviderEvent, ResourceRuntimeState, RuntimeCapabilityId, RuntimeSnapshot, SessionEvent,
+    ThemeEvent, WIRE_SCHEMA_VERSION,
+};
 
 pub use keybindings::{
     canonicalize_accelerator, packaged_reserved_keybindings, validate_keybindings,
@@ -257,3 +272,19 @@ fn validate_entrypoint(entrypoint: &str) -> Result<(), ContractError> {
 
     Ok(())
 }
+pub use desktop::{
+    validate_calendar_snapshot, validate_desktop_launch_request, validate_osd_event,
+    validate_weather_snapshot, CalendarEvent, CalendarProvider, CalendarSnapshot,
+    CalendarSourceError, DesktopLaunchRequest, ForecastPoint, OsdEvent, OsdKind, WeatherLocation,
+    WeatherProvider, WeatherSnapshot,
+};
+pub use domains::{
+    validate_hardware_capability_snapshot, validate_installation_profile,
+    validate_notification_document, validate_provider_snapshot, validate_theme_document,
+    CacheStatus, DeviceIdentifier, DeviceKind, FirstBootSnapshot, FirstBootState, FixtureMetadata,
+    HardwareCapability, HardwareCapabilitySnapshot, HardwareDeviceCapability, InstallationProfile,
+    InstallerProvider, MachineProfile, MachineSystem, NotificationAction, NotificationActionState,
+    NotificationDocument, NotificationUrgency, ProviderKind, ProviderSnapshot, ProviderStatus,
+    RollbackSnapshot, SemanticColors, ThemeAppearance, ThemeDocument, ThemeEffects, ThemeOrigin,
+    DURABLE_SCHEMA_VERSION,
+};

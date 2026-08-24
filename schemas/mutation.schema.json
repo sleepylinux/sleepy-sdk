@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sleepy-linux.org/schemas/v2/mutation.schema.json",
+  "oneOf": [
+    { "$ref": "#/$defs/request" },
+    { "$ref": "#/$defs/confirmed" },
+    { "$ref": "#/$defs/unconfirmed" }
+  ],
+  "$defs": {
+    "request": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "requestId", "expectedGeneration", "command"],
+      "properties": {
+        "schemaVersion": { "const": 2 }, "requestId": { "$ref": "#/$defs/requestId" },
+        "expectedGeneration": { "type": "integer", "minimum": 1 },
+        "command": { "$ref": "#/$defs/command" }
+      }
+    },
+    "command": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "required": ["type", "data"], "properties": { "type": { "const": "setDnd" }, "data": { "type": "object", "additionalProperties": false, "required": ["enabled"], "properties": { "enabled": { "type": "boolean" } } } } },
+        { "type": "object", "additionalProperties": false, "required": ["type", "data"], "properties": { "type": { "const": "setCapability" }, "data": { "type": "object", "additionalProperties": false, "required": ["mutation"], "properties": { "mutation": { "$ref": "#/$defs/systemMutation" } } } } },
+        { "type": "object", "additionalProperties": false, "required": ["type", "data"], "properties": { "type": { "enum": ["focusWindow", "closeWindow"] }, "data": { "type": "object", "additionalProperties": false, "required": ["windowId"], "properties": { "windowId": { "type": "integer", "minimum": 1 } } } } },
+        { "type": "object", "additionalProperties": false, "required": ["type", "data"], "properties": { "type": { "const": "focusWorkspace" }, "data": { "type": "object", "additionalProperties": false, "required": ["workspaceId"], "properties": { "workspaceId": { "type": "integer", "minimum": 1 } } } } },
+        { "type": "object", "additionalProperties": false, "required": ["type", "data"], "properties": { "type": { "const": "applyTheme" }, "data": { "type": "object", "additionalProperties": false, "required": ["themeId"], "properties": { "themeId": { "type": "string", "minLength": 1, "pattern": "\\S" } } } } }
+      ]
+    },
+    "systemMutation": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "required": ["capability", "value"], "properties": { "capability": { "enum": ["network.enabled", "bluetooth.enabled", "audio.muted", "audio.microphoneMuted", "display.nightLightEnabled"] }, "value": { "type": "boolean" } } },
+        { "type": "object", "additionalProperties": false, "required": ["capability", "value"], "properties": { "capability": { "enum": ["audio.volume", "audio.microphoneLevel", "display.brightness"] }, "value": { "type": "number", "minimum": 0, "maximum": 1 } } },
+        { "type": "object", "additionalProperties": false, "required": ["capability", "value"], "properties": { "capability": { "const": "audio.outputDevice" }, "value": { "type": "string", "minLength": 1 } } },
+        { "type": "object", "additionalProperties": false, "required": ["capability", "value"], "properties": { "capability": { "const": "power.profile" }, "value": { "enum": ["performance", "balanced", "power-saver"] } } },
+        { "type": "object", "additionalProperties": false, "required": ["capability", "value"], "properties": { "capability": { "const": "media.transport" }, "value": { "enum": ["playPause", "next", "previous"] } } }
+      ]
+    },
+    "requestId": { "type": "string", "format": "uuid", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" },
+    "confirmed": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "requestId", "generation", "status", "confirmedEvent"],
+      "properties": { "schemaVersion": { "const": 2 }, "requestId": { "$ref": "#/$defs/requestId" }, "generation": { "type": "integer", "minimum": 1 }, "status": { "const": "confirmed" }, "confirmedEvent": { "$ref": "event.schema.json" } }
+    },
+    "unconfirmed": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "requestId", "generation", "status", "error"],
+      "properties": { "schemaVersion": { "const": 2 }, "requestId": { "$ref": "#/$defs/requestId" }, "generation": { "type": "integer", "minimum": 1 }, "status": { "enum": ["rejected", "unknown"] }, "error": { "type": "object", "additionalProperties": false, "required": ["code", "message"], "properties": { "code": { "type": "string", "minLength": 1, "pattern": "\\S" }, "message": { "type": "string", "minLength": 1, "pattern": "\\S" } } } }
+    }
+  }
+}

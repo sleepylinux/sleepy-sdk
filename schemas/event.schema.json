@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sleepy-linux.org/schemas/v2/event.schema.json",
+  "title": "Sleepy Session Event Envelope v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generation", "eventId", "emittedAt", "cause", "payload"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "generation": { "type": "integer", "minimum": 1 },
+    "eventId": { "type": "string", "format": "uuid", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" },
+    "emittedAt": { "type": "string", "format": "date-time", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$" },
+    "cause": { "$ref": "#/$defs/cause" },
+    "payload": { "$ref": "#/$defs/payload" }
+  },
+  "$defs": {
+    "cause": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind"], "properties": { "kind": { "enum": ["external", "replay", "lifecycle"] } }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "requestId"],
+          "properties": { "kind": { "const": "request" }, "requestId": { "type": "string", "format": "uuid", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" } }
+        }
+      ]
+    },
+    "failure": {
+      "type": "object", "additionalProperties": false, "required": ["message"],
+      "properties": { "message": { "type": "string", "minLength": 1 } }
+    },
+    "capabilityRecord": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["id", "status", "value"],
+          "properties": {
+            "id": { "$ref": "#/$defs/capabilityId" }, "status": { "const": "available" },
+            "value": { "$ref": "#/$defs/capabilityValue" }
+          },
+          "allOf": [{ "oneOf": [
+            { "properties": { "id": { "const": "network" }, "value": { "$ref": "#/$defs/networkValue" } } },
+            { "properties": { "id": { "const": "bluetooth" }, "value": { "$ref": "#/$defs/bluetoothValue" } } },
+            { "properties": { "id": { "const": "audio" }, "value": { "$ref": "#/$defs/audioValue" } } },
+            { "properties": { "id": { "const": "battery" }, "value": { "$ref": "#/$defs/batteryValue" } } },
+            { "properties": { "id": { "const": "brightness" }, "value": { "$ref": "#/$defs/brightnessValue" } } },
+            { "properties": { "id": { "const": "powerProfile" }, "value": { "$ref": "#/$defs/powerValue" } } },
+            { "properties": { "id": { "const": "media" }, "value": { "$ref": "#/$defs/mediaValue" } } },
+            { "properties": { "id": { "const": "nightLight" }, "value": { "$ref": "#/$defs/nightLightValue" } } },
+            { "properties": { "id": { "const": "niri" }, "value": { "$ref": "#/$defs/niriValue" } } },
+            { "properties": { "id": { "const": "resources" }, "value": { "$ref": "#/$defs/resourcesValue" } } }
+          ] }]
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["id", "status", "diagnostic"],
+          "properties": {
+            "id": { "$ref": "#/$defs/capabilityId" },
+            "status": { "enum": ["unavailable", "unsupported", "permissionDenied", "timeout", "parse", "error"] },
+            "diagnostic": { "$ref": "#/$defs/failure" }
+          }
+        }
+      ]
+    },
+    "capabilityId": {
+      "enum": ["network", "bluetooth", "audio", "battery", "brightness", "powerProfile", "media", "nightLight", "niri", "resources"]
+    },
+    "capabilityValue": {
+      "oneOf": [
+        { "$ref": "#/$defs/networkValue" },
+        { "$ref": "#/$defs/bluetoothValue" },
+        { "$ref": "#/$defs/audioValue" },
+        { "$ref": "#/$defs/batteryValue" },
+        { "$ref": "#/$defs/brightnessValue" },
+        { "$ref": "#/$defs/powerValue" },
+        { "$ref": "#/$defs/mediaValue" },
+        { "$ref": "#/$defs/nightLightValue" },
+        { "$ref": "#/$defs/niriValue" },
+        { "$ref": "#/$defs/resourcesValue" }
+      ]
+    },
+    "networkValue": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": {
+        "type": { "const": "network" },
+        "data": {
+          "type": "object", "additionalProperties": false,
+          "required": ["wifiEnabled", "ethernetConnected", "connectivity"],
+          "properties": {
+            "wifiEnabled": { "type": "boolean" }, "ethernetConnected": { "type": "boolean" },
+            "connectivity": { "enum": ["unknown", "none", "portal", "limited", "full"] },
+            "activeConnectionId": { "type": "string" }
+          }
+        }
+      }
+    },
+    "bluetoothValue": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "bluetooth" }, "data": { "type": "object", "additionalProperties": false, "required": ["powered", "connectedDeviceIds"], "properties": { "powered": { "type": "boolean" }, "connectedDeviceIds": { "type": "array", "items": { "type": "string" }, "uniqueItems": true } } } }
+    },
+    "audioValue": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "audio" }, "data": { "type": "object", "additionalProperties": false, "required": ["outputLevel", "outputMuted", "inputLevel", "inputMuted"], "properties": { "outputLevel": { "type": "number", "minimum": 0, "maximum": 1 }, "outputMuted": { "type": "boolean" }, "inputLevel": { "type": "number", "minimum": 0, "maximum": 1 }, "inputMuted": { "type": "boolean" }, "defaultOutputId": { "type": "string" } } } }
+    },
+    "batteryValue": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "battery" }, "data": { "type": "object", "additionalProperties": false, "required": ["percentage", "charging"], "properties": { "percentage": { "type": "integer", "minimum": 0, "maximum": 100 }, "charging": { "type": "boolean" }, "secondsRemaining": { "type": "integer", "minimum": 0 } } } }
+    },
+    "brightnessValue": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "brightness" }, "data": { "type": "object", "additionalProperties": false, "required": ["level"], "properties": { "level": { "type": "number", "minimum": 0, "maximum": 1 } } } }
+    },
+    "powerValue": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "powerProfile" }, "data": { "type": "object", "additionalProperties": false, "required": ["active", "available"], "properties": { "active": { "type": "string", "minLength": 1 }, "available": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true } } } }
+    },
+    "mediaValue": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "media" }, "data": { "type": "object", "additionalProperties": false, "required": ["playerId", "title", "artist", "playing"], "properties": { "playerId": { "type": "string" }, "title": { "type": "string" }, "artist": { "type": "string" }, "playing": { "type": "boolean" } } } }
+    },
+    "nightLightValue": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "nightLight" }, "data": { "type": "object", "additionalProperties": false, "required": ["enabled"], "properties": { "enabled": { "type": "boolean" } } } }
+    },
+    "niriValue": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "niri" }, "data": { "type": "object", "additionalProperties": false, "required": ["outputIds", "workspaceIds", "windowIds"], "properties": { "outputIds": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }, "workspaceIds": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "uniqueItems": true }, "windowIds": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "uniqueItems": true } } } }
+    },
+    "resourcesValue": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "resources" }, "data": { "type": "object", "additionalProperties": false, "required": ["cpuUsage", "memoryUsage", "loadOne"], "properties": { "cpuUsage": { "type": "number", "minimum": 0, "maximum": 1 }, "memoryUsage": { "type": "number", "minimum": 0, "maximum": 1 }, "loadOne": { "type": "number", "minimum": 0 } } } }
+    },
+    "payload": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "required": ["type", "data"], "properties": { "type": { "const": "fullSnapshot" }, "data": { "type": "object", "additionalProperties": false, "required": ["capabilities"], "properties": { "capabilities": { "type": "array", "minItems": 10, "maxItems": 10, "items": { "$ref": "#/$defs/capabilityRecord" }, "allOf": [
+          { "contains": { "required": ["id"], "properties": { "id": { "const": "network" } } }, "minContains": 1, "maxContains": 1 },
+          { "contains": { "required": ["id"], "properties": { "id": { "const": "bluetooth" } } }, "minContains": 1, "maxContains": 1 },
+          { "contains": { "required": ["id"], "properties": { "id": { "const": "audio" } } }, "minContains": 1, "maxContains": 1 },
+          { "contains": { "required": ["id"], "properties": { "id": { "const": "battery" } } }, "minContains": 1, "maxContains": 1 },
+          { "contains": { "required": ["id"], "properties": { "id": { "const": "brightness" } } }, "minContains": 1, "maxContains": 1 },
+          { "contains": { "required": ["id"], "properties": { "id": { "const": "powerProfile" } } }, "minContains": 1, "maxContains": 1 },
+          { "contains": { "required": ["id"], "properties": { "id": { "const": "media" } } }, "minContains": 1, "maxContains": 1 },
+          { "contains": { "required": ["id"], "properties": { "id": { "const": "nightLight" } } }, "minContains": 1, "maxContains": 1 },
+          { "contains": { "required": ["id"], "properties": { "id": { "const": "niri" } } }, "minContains": 1, "maxContains": 1 },
+          { "contains": { "required": ["id"], "properties": { "id": { "const": "resources" } } }, "minContains": 1, "maxContains": 1 }
+        ] }, "focusedOutputId": { "type": "string" } } } } },
+        { "type": "object", "additionalProperties": false, "required": ["type", "data"], "properties": { "type": { "const": "capabilityUpdate" }, "data": { "$ref": "#/$defs/capabilityRecord" } } },
+        { "type": "object", "additionalProperties": false, "required": ["type", "data"], "properties": { "type": { "const": "notification" }, "data": { "type": "object", "additionalProperties": false, "required": ["notificationId", "change"], "properties": { "notificationId": { "type": "integer", "minimum": 1 }, "change": { "enum": ["added", "updated", "archived", "actionExpired"] } } } } },
+        { "type": "object", "additionalProperties": false, "required": ["type", "data"], "properties": { "type": { "const": "provider" }, "data": { "type": "object", "additionalProperties": false, "required": ["providerId", "online"], "properties": { "providerId": { "type": "string", "minLength": 1, "pattern": "\\S" }, "online": { "type": "boolean" } } } } },
+        { "type": "object", "additionalProperties": false, "required": ["type", "data"], "properties": { "type": { "const": "niri" }, "data": { "type": "object", "additionalProperties": false, "required": ["focusedOutputId"], "properties": { "focusedOutputId": { "type": ["string", "null"] } } } } },
+        { "type": "object", "additionalProperties": false, "required": ["type", "data"], "properties": { "type": { "const": "theme" }, "data": { "type": "object", "additionalProperties": false, "required": ["themeId", "applied"], "properties": { "themeId": { "type": "string", "minLength": 1, "pattern": "\\S" }, "applied": { "type": "boolean" } } } } },
+        { "type": "object", "additionalProperties": false, "required": ["type", "data"], "properties": { "type": { "const": "lifecycle" }, "data": { "type": "object", "additionalProperties": false, "required": ["state"], "properties": { "state": { "enum": ["ready", "stopping", "reconciled"] } } } } }
+      ]
+    }
+  }
+}

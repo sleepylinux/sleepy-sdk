@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "00a16d53-c1e2-4c7e-b85a-3cb4b23ac22a",
+  "name": "Internal Accelerator Whitespace",
+  "origin": "user",
+  "layouts": {},
+  "drawers": {},
+  "keybindings": {
+    "launcher.open": "Mod + D"
+  },
+  "pluginRequirements": []
+}

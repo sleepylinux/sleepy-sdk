@@ -55,3 +55,37 @@ fn validates_system_documents() {
     assert_eq!(invalid_status.code(), Some(1));
     assert_eq!(mutation_status.code(), Some(0));
 }
+
+#[test]
+fn rejects_a_preset_that_collides_with_the_packaged_recovery_chord() {
+    let output = sleepy_contract()
+        .args([
+            "validate",
+            "preset",
+            "fixtures/v1/preset/invalid-reserved-binding.json",
+        ])
+        .output()
+        .expect("CLI should run");
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("Reserved"));
+}
+
+#[test]
+fn reports_mutation_specific_system_document_errors() {
+    let output = sleepy_contract()
+        .args([
+            "validate",
+            "system",
+            "fixtures/v1/system/invalid-mutation-missing-requested-value.json",
+        ])
+        .output()
+        .expect("CLI should run");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(
+        stderr.contains("missing field `requestedValue`"),
+        "unexpected diagnostic: {stderr}"
+    );
+}

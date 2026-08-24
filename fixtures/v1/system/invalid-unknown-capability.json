@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "capabilities": {
+    "network.enabled": "available",
+    "network.signalLevel": "available"
+  },
+  "diagnostics": {},
+  "network": {
+    "enabled": true,
+    "connectedName": "Sleepy Wi-Fi",
+    "signalLevel": 0.82
+  },
+  "bluetooth": null,
+  "audio": null,
+  "display": null,
+  "power": null,
+  "media": null
+}

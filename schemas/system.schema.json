@@ -15,6 +15,26 @@
     "capabilityState": {
       "enum": ["available", "unavailable", "busy", "error"]
     },
+    "capabilityId": {
+      "enum": [
+        "network.enabled",
+        "bluetooth.enabled",
+        "audio.volume",
+        "audio.muted",
+        "audio.microphoneLevel",
+        "audio.microphoneMuted",
+        "audio.outputDevice",
+        "display.brightness",
+        "display.nightLightEnabled",
+        "power.profile",
+        "battery.status",
+        "media.transport",
+        "session.lock",
+        "session.logout",
+        "session.reboot",
+        "session.powerOff"
+      ]
+    },
     "capabilityDiagnostic": {
       "type": "object",
       "additionalProperties": false,
@@ -118,12 +138,12 @@
         "capabilities": {
           "type": "object",
           "minProperties": 1,
-          "propertyNames": { "type": "string", "pattern": "\\S" },
+          "propertyNames": { "$ref": "#/$defs/capabilityId" },
           "additionalProperties": { "$ref": "#/$defs/capabilityState" }
         },
         "diagnostics": {
           "type": "object",
-          "propertyNames": { "type": "string", "pattern": "\\S" },
+          "propertyNames": { "$ref": "#/$defs/capabilityId" },
           "additionalProperties": { "$ref": "#/$defs/capabilityDiagnostic" }
         },
         "network": {
@@ -170,7 +190,7 @@
       "required": ["schemaVersion", "capability", "requestedValue", "snapshot"],
       "properties": {
         "schemaVersion": { "const": 1 },
-        "capability": { "type": "string", "pattern": "\\S" },
+        "capability": { "$ref": "#/$defs/capabilityId" },
         "requestedValue": {
           "oneOf": [
             { "type": "boolean" },

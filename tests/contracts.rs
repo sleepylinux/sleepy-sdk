@@ -1,10 +1,11 @@
 use std::collections::BTreeMap;
 
 use sleepy_sdk::{
-    canonicalize_accelerator, validate_keybindings, validate_keybindings_with_reserved,
-    validate_plugin_manifest, validate_preset, validate_settings, validate_system_mutation_result,
-    validate_system_snapshot, CapabilityErrorKind, CapabilityState, KeybindingConflictKind,
-    SemanticAction, SystemMutationValue,
+    canonicalize_accelerator, packaged_reserved_keybindings, validate_keybindings,
+    validate_keybindings_with_reserved, validate_plugin_manifest, validate_preset,
+    validate_settings, validate_system_mutation_result, validate_system_snapshot,
+    CapabilityErrorKind, CapabilityId, CapabilityState, ConflictKind, SemanticAction,
+    SystemMutationValue,
 };
 
 fn fixture(path: &str) -> String {
@@ -76,6 +77,39 @@ fn keybinding_canonicalizes_modifier_order_and_case() {
         canonicalize_accelerator("shift+mod+d").expect("accelerator should canonicalize");
 
     assert_eq!(accelerator, "Mod+Shift+D");
+}
+
+#[test]
+fn keybinding_canonicalizes_ascii_function_named_and_xf86_keys() {
+    for (input, expected) in [
+        ("  mod+d  ", "Mod+D"),
+        ("ctrl+7", "Ctrl+7"),
+        ("alt+f1", "Alt+F1"),
+        ("shift+F24", "Shift+F24"),
+        ("mod+return", "Mod+Return"),
+        ("mod+LEFT", "Mod+Left"),
+        ("mod+pageup", "Mod+Page_Up"),
+        ("XF86AUDIOPLAY", "XF86AudioPlay"),
+        ("mod+xf86audioraisevolume", "Mod+XF86AudioRaiseVolume"),
+        ("xf86audiolowervolume", "XF86AudioLowerVolume"),
+        ("xf86monbrightnessup", "XF86MonBrightnessUp"),
+    ] {
+        assert_eq!(
+            canonicalize_accelerator(input).expect("accelerator should canonicalize"),
+            expected,
+            "unexpected canonical form for {input}"
+        );
+    }
+}
+
+#[test]
+fn keybinding_rejects_internal_whitespace_and_invalid_key_tokens() {
+    for accelerator in ["Mod + D", "Mod+\tD", "Mod+$", "Mod+Audio-Play", "Mod+é"] {
+        assert!(
+            canonicalize_accelerator(accelerator).is_err(),
+            "{accelerator:?} must be rejected"
+        );
+    }
 }
 
 #[test]
@@ -173,12 +207,23 @@ fn keybinding_reports_a_structured_reserved_chord_collision() {
     let conflict = validate_keybindings_with_reserved(&bindings, &reserved)
         .expect_err("reserved chord must conflict");
 
-    assert_eq!(conflict.kind, KeybindingConflictKind::Reserved);
+    assert_eq!(conflict.kind, ConflictKind::Reserved);
     assert_eq!(conflict.accelerator, "Mod+Shift+Escape");
     assert_eq!(
         conflict.actions,
         vec!["recovery.shell".to_string(), "launcher.open".to_string()]
     );
+}
+
+#[test]
+fn keybinding_normal_validation_enforces_the_exact_packaged_recovery_chord() {
+    assert_eq!(
+        packaged_reserved_keybindings(),
+        BTreeMap::from([("recovery.shell".to_string(), "Mod+Shift+Escape".to_string())])
+    );
+
+    let result = validate_preset(&fixture("preset/invalid-reserved-binding.json"));
+    assert!(result.is_err());
 }
 
 #[test]
@@ -192,7 +237,7 @@ fn keybinding_reports_structured_duplicate_and_invalid_conflicts() {
     ]);
     let duplicate = validate_keybindings_with_reserved(&duplicate_bindings, &BTreeMap::new())
         .expect_err("duplicate chord must conflict");
-    assert_eq!(duplicate.kind, KeybindingConflictKind::Duplicate);
+    assert_eq!(duplicate.kind, ConflictKind::Duplicate);
     assert_eq!(duplicate.accelerator, "Mod+D");
     assert_eq!(
         duplicate.actions,
@@ -206,7 +251,7 @@ fn keybinding_reports_structured_duplicate_and_invalid_conflicts() {
         BTreeMap::from([("surface.teleport.toggle".to_string(), "Mod+T".to_string())]);
     let invalid = validate_keybindings_with_reserved(&invalid_bindings, &BTreeMap::new())
         .expect_err("unknown semantic action must conflict");
-    assert_eq!(invalid.kind, KeybindingConflictKind::Invalid);
+    assert_eq!(invalid.kind, ConflictKind::Invalid);
     assert_eq!(invalid.accelerator, "Mod+T");
     assert_eq!(invalid.actions, vec!["surface.teleport.toggle"]);
 }
@@ -216,7 +261,10 @@ fn system_snapshot_validates_a_complete_document_with_nullable_hardware() {
     let snapshot = validate_system_snapshot(&fixture("system/valid.json"))
         .expect("system snapshot should validate");
 
-    assert_eq!(snapshot.capabilities["network"], CapabilityState::Available);
+    assert_eq!(
+        snapshot.capabilities[&CapabilityId::NetworkEnabled],
+        CapabilityState::Available
+    );
     assert!(snapshot.bluetooth.is_none());
     assert_eq!(
         snapshot
@@ -233,9 +281,50 @@ fn system_snapshot_validates_a_complete_document_with_nullable_hardware() {
         None
     );
     assert_eq!(
-        snapshot.diagnostics["bluetooth"].kind,
+        snapshot.diagnostics[&CapabilityId::BluetoothEnabled].kind,
         CapabilityErrorKind::Unsupported
     );
+}
+
+#[test]
+fn system_capability_ids_are_a_closed_exact_wire_registry() {
+    for wire_id in [
+        "network.enabled",
+        "bluetooth.enabled",
+        "audio.volume",
+        "audio.muted",
+        "audio.microphoneLevel",
+        "audio.microphoneMuted",
+        "audio.outputDevice",
+        "display.brightness",
+        "display.nightLightEnabled",
+        "power.profile",
+        "battery.status",
+        "media.transport",
+        "session.lock",
+        "session.logout",
+        "session.reboot",
+        "session.powerOff",
+    ] {
+        let capability: CapabilityId = serde_json::from_value(serde_json::json!(wire_id))
+            .expect("known capability should deserialize");
+        assert_eq!(serde_json::to_value(capability).unwrap(), wire_id);
+    }
+
+    assert!(
+        serde_json::from_value::<CapabilityId>(serde_json::json!("network.signalLevel")).is_err()
+    );
+}
+
+#[test]
+fn system_snapshot_and_mutation_reject_unknown_capability_ids() {
+    assert!(validate_system_snapshot(&fixture("system/invalid-unknown-capability.json")).is_err());
+
+    let source = fixture("system/valid-mutation.json");
+    let mut mutation: serde_json::Value =
+        serde_json::from_str(&source).expect("fixture should be JSON");
+    mutation["capability"] = serde_json::json!("audio.balance");
+    assert!(validate_system_mutation_result(&mutation.to_string()).is_err());
 }
 
 #[test]
@@ -275,7 +364,7 @@ fn system_snapshot_rejects_an_unknown_capability_state() {
     let source = fixture("system/valid.json");
     let mut candidate: serde_json::Value =
         serde_json::from_str(&source).expect("fixture should be JSON");
-    candidate["capabilities"]["network"] = serde_json::json!("degraded");
+    candidate["capabilities"]["network.enabled"] = serde_json::json!("degraded");
 
     assert!(validate_system_snapshot(&candidate.to_string()).is_err());
 }
@@ -285,7 +374,7 @@ fn system_snapshot_rejects_an_unknown_capability_diagnostic_kind() {
     let source = fixture("system/valid.json");
     let mut candidate: serde_json::Value =
         serde_json::from_str(&source).expect("fixture should be JSON");
-    candidate["diagnostics"]["bluetooth"]["kind"] = serde_json::json!("offline");
+    candidate["diagnostics"]["bluetooth.enabled"]["kind"] = serde_json::json!("offline");
 
     assert!(validate_system_snapshot(&candidate.to_string()).is_err());
 }
@@ -298,7 +387,7 @@ fn system_snapshot_supports_distinct_capability_diagnostic_kinds() {
 
     for kind in ["unsupported", "timeout", "parse", "command", "busy"] {
         let mut candidate = original.clone();
-        candidate["diagnostics"]["bluetooth"]["kind"] = serde_json::json!(kind);
+        candidate["diagnostics"]["bluetooth.enabled"]["kind"] = serde_json::json!(kind);
 
         assert!(
             validate_system_snapshot(&candidate.to_string()).is_ok(),
@@ -312,7 +401,7 @@ fn system_mutation_result_validates_confirmed_readback() {
     let result = validate_system_mutation_result(&fixture("system/valid-mutation.json"))
         .expect("system mutation result should validate");
 
-    assert_eq!(result.capability, "audio.volume");
+    assert_eq!(result.capability, CapabilityId::AudioVolume);
     assert_eq!(result.requested_value, SystemMutationValue::Level(0.72));
     assert_eq!(
         result.snapshot.audio.expect("audio should exist").volume,

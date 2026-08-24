@@ -52,6 +52,59 @@ fn preset_schema_accepts_canonicalizable_accelerators() {
 }
 
 #[test]
+fn preset_schema_and_rust_agree_on_accelerator_syntax() {
+    let validator = schema("preset.schema.json");
+
+    assert!(validator.is_valid(&fixture("preset/valid-accelerator-syntax.json")));
+    assert!(sleepy_sdk::validate_preset(
+        &std::fs::read_to_string("fixtures/v1/preset/valid-accelerator-syntax.json")
+            .expect("fixture should exist")
+    )
+    .is_ok());
+
+    for path in [
+        "preset/invalid-accelerator-whitespace.json",
+        "preset/invalid-accelerator-key-token.json",
+    ] {
+        assert!(
+            !validator.is_valid(&fixture(path)),
+            "schema must reject {path}"
+        );
+        assert!(
+            sleepy_sdk::validate_preset(
+                &std::fs::read_to_string(format!("fixtures/v1/{path}"))
+                    .expect("fixture should exist")
+            )
+            .is_err(),
+            "Rust must reject {path}"
+        );
+    }
+}
+
+#[test]
+fn preset_schema_leaves_duplicate_modifiers_and_reserved_chords_to_rust() {
+    let validator = schema("preset.schema.json");
+
+    for path in [
+        "preset/invalid-duplicate-modifier.json",
+        "preset/invalid-reserved-binding.json",
+    ] {
+        assert!(
+            validator.is_valid(&fixture(path)),
+            "{path} is syntactically valid"
+        );
+        assert!(
+            sleepy_sdk::validate_preset(
+                &std::fs::read_to_string(format!("fixtures/v1/{path}"))
+                    .expect("fixture should exist")
+            )
+            .is_err(),
+            "semantic Rust validation must reject {path}"
+        );
+    }
+}
+
+#[test]
 fn system_schema_accepts_nullable_hardware_states() {
     let validator = schema("system.schema.json");
 
@@ -91,4 +144,11 @@ fn system_schema_accepts_a_confirmed_mutation_result() {
     let validator = schema("system.schema.json");
 
     assert!(validator.is_valid(&fixture("system/valid-mutation.json")));
+}
+
+#[test]
+fn system_schema_rejects_unknown_capability_ids() {
+    let validator = schema("system.schema.json");
+
+    assert!(!validator.is_valid(&fixture("system/invalid-unknown-capability.json")));
 }

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "capability": "audio.volume",
+  "snapshot": {
+    "schemaVersion": 1,
+    "capabilities": {
+      "audio.volume": "available"
+    },
+    "diagnostics": {},
+    "network": null,
+    "bluetooth": null,
+    "audio": {
+      "volume": 0.72,
+      "muted": false,
+      "microphoneLevel": 0.4,
+      "microphoneMuted": false,
+      "outputDevice": "Sleepy Speakers"
+    },
+    "display": null,
+    "power": null,
+    "media": null
+  }
+}

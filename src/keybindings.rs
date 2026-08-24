@@ -8,6 +8,7 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use crate::ContractError;
 
 const MODIFIERS: [&str; 4] = ["Mod", "Ctrl", "Alt", "Shift"];
+const PACKAGED_RESERVED_KEYBINDINGS: [(&str, &str); 1] = [("recovery.shell", "Mod+Shift+Escape")];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SemanticAction {
@@ -128,7 +129,7 @@ impl<'de> Deserialize<'de> for SemanticAction {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum KeybindingConflictKind {
+pub enum ConflictKind {
     Duplicate,
     Reserved,
     Invalid,
@@ -137,7 +138,7 @@ pub enum KeybindingConflictKind {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct KeybindingConflict {
-    pub kind: KeybindingConflictKind,
+    pub kind: ConflictKind,
     pub accelerator: String,
     pub actions: Vec<String>,
 }
@@ -155,11 +156,17 @@ impl fmt::Display for KeybindingConflict {
 }
 
 pub fn canonicalize_accelerator(input: &str) -> Result<String, ContractError> {
+    let input = input.trim();
+    if input.chars().any(char::is_whitespace) {
+        return Err(ContractError::new(
+            "accelerator must not contain internal whitespace",
+        ));
+    }
+
     let mut modifiers = BTreeSet::new();
     let mut key = None;
 
     for component in input.split('+') {
-        let component = component.trim();
         if component.is_empty() {
             return Err(ContractError::new(
                 "accelerator components must not be blank",
@@ -175,10 +182,20 @@ pub fn canonicalize_accelerator(input: &str) -> Result<String, ContractError> {
                     "accelerator contains duplicate modifier {modifier}"
                 )));
             }
-        } else if key.replace(component).is_some() {
-            return Err(ContractError::new(
-                "accelerator must contain exactly one key",
-            ));
+        } else {
+            if !component
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
+            {
+                return Err(ContractError::new(
+                    "accelerator key must contain only ASCII letters, digits, or underscore",
+                ));
+            }
+            if key.replace(component).is_some() {
+                return Err(ContractError::new(
+                    "accelerator must contain exactly one key",
+                ));
+            }
         }
     }
 
@@ -196,8 +213,16 @@ pub fn canonicalize_accelerator(input: &str) -> Result<String, ContractError> {
 }
 
 pub fn validate_keybindings(bindings: &BTreeMap<String, String>) -> Result<(), ContractError> {
-    validate_keybindings_with_reserved(bindings, &BTreeMap::new())
+    let reserved_bindings = packaged_reserved_keybindings();
+    validate_keybindings_with_reserved(bindings, &reserved_bindings)
         .map_err(|conflict| ContractError::new(conflict.to_string()))
+}
+
+pub fn packaged_reserved_keybindings() -> BTreeMap<String, String> {
+    PACKAGED_RESERVED_KEYBINDINGS
+        .iter()
+        .map(|(action, accelerator)| ((*action).to_string(), (*accelerator).to_string()))
+        .collect()
 }
 
 pub fn validate_keybindings_with_reserved(
@@ -208,14 +233,14 @@ pub fn validate_keybindings_with_reserved(
 
     for (action, binding) in reserved_bindings {
         let canonical = canonicalize_accelerator(binding).map_err(|_| KeybindingConflict {
-            kind: KeybindingConflictKind::Invalid,
+            kind: ConflictKind::Invalid,
             accelerator: binding.clone(),
             actions: vec![action.clone()],
         })?;
         if let Some((existing_action, _)) = chords.insert(canonical.clone(), (action.clone(), true))
         {
             return Err(KeybindingConflict {
-                kind: KeybindingConflictKind::Reserved,
+                kind: ConflictKind::Reserved,
                 accelerator: canonical,
                 actions: vec![existing_action, action.clone()],
             });
@@ -224,13 +249,13 @@ pub fn validate_keybindings_with_reserved(
 
     for (action, binding) in bindings {
         let canonical = canonicalize_accelerator(binding).map_err(|_| KeybindingConflict {
-            kind: KeybindingConflictKind::Invalid,
+            kind: ConflictKind::Invalid,
             accelerator: binding.clone(),
             actions: vec![action.clone()],
         })?;
         if SemanticAction::try_from(action.as_str()).is_err() {
             return Err(KeybindingConflict {
-                kind: KeybindingConflictKind::Invalid,
+                kind: ConflictKind::Invalid,
                 accelerator: canonical,
                 actions: vec![action.clone()],
             });
@@ -241,9 +266,9 @@ pub fn validate_keybindings_with_reserved(
         {
             return Err(KeybindingConflict {
                 kind: if reserved {
-                    KeybindingConflictKind::Reserved
+                    ConflictKind::Reserved
                 } else {
-                    KeybindingConflictKind::Duplicate
+                    ConflictKind::Duplicate
                 },
                 accelerator: canonical,
                 actions: vec![existing_action, action.clone()],
@@ -255,31 +280,54 @@ pub fn validate_keybindings_with_reserved(
 }
 
 fn canonicalize_key(key: &str) -> String {
-    const NAMED_KEYS: [&str; 15] = [
-        "Escape",
-        "Space",
-        "Return",
-        "Enter",
-        "Tab",
-        "Backspace",
-        "Delete",
-        "Home",
-        "End",
-        "PageUp",
-        "PageDown",
-        "Left",
-        "Right",
-        "Up",
-        "Down",
+    const NAMED_KEYS: &[(&str, &str)] = &[
+        ("escape", "Escape"),
+        ("space", "Space"),
+        ("return", "Return"),
+        ("enter", "Return"),
+        ("tab", "Tab"),
+        ("backspace", "BackSpace"),
+        ("back_space", "BackSpace"),
+        ("delete", "Delete"),
+        ("insert", "Insert"),
+        ("home", "Home"),
+        ("end", "End"),
+        ("pageup", "Page_Up"),
+        ("page_up", "Page_Up"),
+        ("prior", "Page_Up"),
+        ("pagedown", "Page_Down"),
+        ("page_down", "Page_Down"),
+        ("next", "Page_Down"),
+        ("left", "Left"),
+        ("right", "Right"),
+        ("up", "Up"),
+        ("down", "Down"),
+        ("xf86audioplay", "XF86AudioPlay"),
+        ("xf86audiopause", "XF86AudioPause"),
+        ("xf86audiostop", "XF86AudioStop"),
+        ("xf86audionext", "XF86AudioNext"),
+        ("xf86audioprev", "XF86AudioPrev"),
+        ("xf86audioraisevolume", "XF86AudioRaiseVolume"),
+        ("xf86audiolowervolume", "XF86AudioLowerVolume"),
+        ("xf86audiomute", "XF86AudioMute"),
+        ("xf86audiomicmute", "XF86AudioMicMute"),
+        ("xf86monbrightnessup", "XF86MonBrightnessUp"),
+        ("xf86monbrightnessdown", "XF86MonBrightnessDown"),
     ];
 
     if key.chars().count() == 1 {
         key.to_uppercase()
-    } else if let Some(named) = NAMED_KEYS
-        .iter()
-        .find(|named| named.eq_ignore_ascii_case(key))
+    } else if let Some(number) = key
+        .strip_prefix(['f', 'F'])
+        .and_then(|digits| digits.parse::<u8>().ok())
+        .filter(|number| (1..=24).contains(number))
     {
-        (*named).to_string()
+        format!("F{number}")
+    } else if let Some((_, canonical)) = NAMED_KEYS
+        .iter()
+        .find(|(alias, _)| alias.eq_ignore_ascii_case(key))
+    {
+        (*canonical).to_string()
     } else {
         key.to_string()
     }

@@ -61,11 +61,19 @@ fn print_usage() {
 }
 
 fn validate_system_document(document: &str) -> Result<(), ContractError> {
-    match validate_system_snapshot(document) {
-        Ok(_) => Ok(()),
-        Err(snapshot_error) => match validate_system_mutation_result(document) {
-            Ok(_) => Ok(()),
-            Err(_) => Err(snapshot_error),
-        },
+    let mutation_shape = serde_json::from_str::<serde_json::Value>(document)
+        .ok()
+        .is_some_and(|value| {
+            value.as_object().is_some_and(|object| {
+                object.contains_key("capability")
+                    || object.contains_key("requestedValue")
+                    || object.contains_key("snapshot")
+            })
+        });
+
+    if mutation_shape {
+        validate_system_mutation_result(document).map(|_| ())
+    } else {
+        validate_system_snapshot(document).map(|_| ())
     }
 }

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "d5e8bcb2-89c9-4dc4-b1bc-5d1f362305bc",
+  "name": "Valid Accelerator Syntax",
+  "origin": "user",
+  "basePresetId": "builtin.sleepy",
+  "layouts": {},
+  "drawers": {},
+  "keybindings": {
+    "launcher.open": "  mod+f1  ",
+    "surface.controlCenter.toggle": "Ctrl+XF86AudioPlay"
+  },
+  "pluginRequirements": []
+}

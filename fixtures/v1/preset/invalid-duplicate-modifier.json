@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "00959fd1-f33a-4ec8-9729-e0134dfc2186",
+  "name": "Duplicate Modifier",
+  "origin": "user",
+  "layouts": {},
+  "drawers": {},
+  "keybindings": {
+    "launcher.open": "Mod+mod+D"
+  },
+  "pluginRequirements": []
+}

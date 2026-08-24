@@ -11,8 +11,8 @@ use crate::{ContractError, CONTRACT_SCHEMA_VERSION};
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SystemSnapshot {
     pub schema_version: u32,
-    pub capabilities: BTreeMap<String, CapabilityState>,
-    pub diagnostics: BTreeMap<String, CapabilityDiagnostic>,
+    pub capabilities: BTreeMap<CapabilityId, CapabilityState>,
+    pub diagnostics: BTreeMap<CapabilityId, CapabilityDiagnostic>,
     #[serde(deserialize_with = "required_option")]
     pub network: Option<NetworkState>,
     #[serde(deserialize_with = "required_option")]
@@ -25,6 +25,42 @@ pub struct SystemSnapshot {
     pub power: Option<PowerState>,
     #[serde(deserialize_with = "required_option")]
     pub media: Option<MediaState>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum CapabilityId {
+    #[serde(rename = "network.enabled")]
+    NetworkEnabled,
+    #[serde(rename = "bluetooth.enabled")]
+    BluetoothEnabled,
+    #[serde(rename = "audio.volume")]
+    AudioVolume,
+    #[serde(rename = "audio.muted")]
+    AudioMuted,
+    #[serde(rename = "audio.microphoneLevel")]
+    AudioMicrophoneLevel,
+    #[serde(rename = "audio.microphoneMuted")]
+    AudioMicrophoneMuted,
+    #[serde(rename = "audio.outputDevice")]
+    AudioOutputDevice,
+    #[serde(rename = "display.brightness")]
+    DisplayBrightness,
+    #[serde(rename = "display.nightLightEnabled")]
+    DisplayNightLightEnabled,
+    #[serde(rename = "power.profile")]
+    PowerProfile,
+    #[serde(rename = "battery.status")]
+    BatteryStatus,
+    #[serde(rename = "media.transport")]
+    MediaTransport,
+    #[serde(rename = "session.lock")]
+    SessionLock,
+    #[serde(rename = "session.logout")]
+    SessionLogout,
+    #[serde(rename = "session.reboot")]
+    SessionReboot,
+    #[serde(rename = "session.powerOff")]
+    SessionPowerOff,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -116,7 +152,7 @@ pub struct MediaState {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SystemMutationResult {
     pub schema_version: u32,
-    pub capability: String,
+    pub capability: CapabilityId,
     pub requested_value: SystemMutationValue,
     pub snapshot: SystemSnapshot,
 }
@@ -194,7 +230,6 @@ pub fn validate_system_snapshot(input: &str) -> Result<SystemSnapshot, ContractE
 pub fn validate_system_mutation_result(input: &str) -> Result<SystemMutationResult, ContractError> {
     let result: SystemMutationResult = parse_document(input)?;
     validate_schema_version(result.schema_version, "system mutation result")?;
-    require_non_empty(&result.capability, "system mutation capability")?;
     if let SystemMutationValue::Name(value) = &result.requested_value {
         require_non_empty(value, "system mutation requestedValue")?;
     }
@@ -209,11 +244,7 @@ fn validate_snapshot(snapshot: &SystemSnapshot) -> Result<(), ContractError> {
             "system snapshot capabilities must not be empty",
         ));
     }
-    for capability in snapshot.capabilities.keys() {
-        require_non_empty(capability, "system snapshot capability")?;
-    }
-    for (capability, diagnostic) in &snapshot.diagnostics {
-        require_non_empty(capability, "system snapshot diagnostic capability")?;
+    for diagnostic in snapshot.diagnostics.values() {
         require_non_empty(&diagnostic.message, "system snapshot diagnostic message")?;
     }
     Ok(())

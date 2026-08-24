@@ -5,23 +5,37 @@
   "snapshot": {
     "schemaVersion": 1,
     "capabilities": {
-      "audio": "available",
-      "bluetooth": "unavailable",
-      "brightness": "unavailable",
-      "media": "unavailable",
-      "network": "available",
-      "power": "available"
+      "network.enabled": "available",
+      "bluetooth.enabled": "unavailable",
+      "audio.volume": "available",
+      "audio.muted": "available",
+      "audio.microphoneLevel": "available",
+      "audio.microphoneMuted": "available",
+      "audio.outputDevice": "available",
+      "display.brightness": "unavailable",
+      "display.nightLightEnabled": "available",
+      "power.profile": "available",
+      "battery.status": "unavailable",
+      "media.transport": "unavailable",
+      "session.lock": "available",
+      "session.logout": "available",
+      "session.reboot": "available",
+      "session.powerOff": "available"
     },
     "diagnostics": {
-      "bluetooth": {
+      "bluetooth.enabled": {
         "kind": "unsupported",
         "message": "No Bluetooth adapter was found"
       },
-      "brightness": {
+      "display.brightness": {
         "kind": "unsupported",
         "message": "No backlight was found"
       },
-      "media": {
+      "battery.status": {
+        "kind": "unsupported",
+        "message": "No battery was found"
+      },
+      "media.transport": {
         "kind": "unsupported",
         "message": "No active media player was found"
       }

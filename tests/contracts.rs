@@ -3,9 +3,10 @@ use std::collections::BTreeMap;
 use sleepy_sdk::{
     canonicalize_accelerator, packaged_reserved_keybindings, validate_keybindings,
     validate_keybindings_with_reserved, validate_plugin_manifest, validate_preset,
-    validate_settings, validate_system_mutation_result, validate_system_snapshot,
-    CapabilityErrorKind, CapabilityId, CapabilityState, ConflictKind, SemanticAction,
-    SystemMutationValue,
+    validate_session_action_request, validate_session_action_result, validate_settings,
+    validate_system_mutation_result, validate_system_snapshot, AudioOutputDevice,
+    CapabilityErrorKind, CapabilityId, CapabilityState, ConflictKind, MediaTransport, PowerProfile,
+    SemanticAction, SessionAction, SessionActionStatus, SystemMutation,
 };
 
 fn fixture(path: &str) -> String {
@@ -184,6 +185,20 @@ fn keybinding_registry_accepts_known_and_rejects_unknown_semantic_actions() {
 }
 
 #[test]
+fn keybinding_registry_distinguishes_session_actions_from_the_power_chooser() {
+    for (wire_id, expected) in [
+        ("session.reboot", SemanticAction::SessionReboot),
+        ("session.powerOff", SemanticAction::SessionPowerOff),
+        ("session.power", SemanticAction::SessionPower),
+    ] {
+        assert_eq!(
+            SemanticAction::try_from(wire_id).expect("semantic action should be known"),
+            expected
+        );
+    }
+}
+
+#[test]
 fn keybinding_reports_a_structured_reserved_chord_collision() {
     let document: serde_json::Value =
         serde_json::from_str(&fixture("preset/invalid-reserved-binding.json"))
@@ -265,6 +280,12 @@ fn system_snapshot_validates_a_complete_document_with_nullable_hardware() {
         snapshot.capabilities[&CapabilityId::NetworkEnabled],
         CapabilityState::Available
     );
+    assert_eq!(snapshot.generation, 41);
+    assert_eq!(snapshot.session_actions.len(), 4);
+    assert_eq!(
+        snapshot.session_actions[&SessionAction::PowerOff],
+        CapabilityState::Available
+    );
     assert!(snapshot.bluetooth.is_none());
     assert_eq!(
         snapshot
@@ -301,10 +322,6 @@ fn system_capability_ids_are_a_closed_exact_wire_registry() {
         "power.profile",
         "battery.status",
         "media.transport",
-        "session.lock",
-        "session.logout",
-        "session.reboot",
-        "session.powerOff",
     ] {
         let capability: CapabilityId = serde_json::from_value(serde_json::json!(wire_id))
             .expect("known capability should deserialize");
@@ -317,14 +334,80 @@ fn system_capability_ids_are_a_closed_exact_wire_registry() {
 }
 
 #[test]
+fn session_actions_are_closed_and_separate_from_state_capabilities() {
+    for (wire_id, expected) in [
+        ("lock", SessionAction::Lock),
+        ("logout", SessionAction::Logout),
+        ("reboot", SessionAction::Reboot),
+        ("powerOff", SessionAction::PowerOff),
+    ] {
+        let action: SessionAction =
+            serde_json::from_value(serde_json::json!(wire_id)).expect("action should deserialize");
+        assert_eq!(action, expected);
+    }
+
+    assert!(serde_json::from_value::<CapabilityId>(serde_json::json!("session.lock")).is_err());
+    assert!(serde_json::from_value::<SessionAction>(serde_json::json!("suspend")).is_err());
+}
+
+#[test]
 fn system_snapshot_and_mutation_reject_unknown_capability_ids() {
     assert!(validate_system_snapshot(&fixture("system/invalid-unknown-capability.json")).is_err());
 
     let source = fixture("system/valid-mutation.json");
     let mut mutation: serde_json::Value =
         serde_json::from_str(&source).expect("fixture should be JSON");
-    mutation["capability"] = serde_json::json!("audio.balance");
+    mutation["mutation"]["capability"] = serde_json::json!("audio.balance");
     assert!(validate_system_mutation_result(&mutation.to_string()).is_err());
+}
+
+#[test]
+fn system_mutation_is_tagged_with_an_exact_value_type_per_capability() {
+    for (value, expected) in [
+        (
+            serde_json::json!({"capability": "network.enabled", "value": true}),
+            SystemMutation::NetworkEnabled(true),
+        ),
+        (
+            serde_json::json!({"capability": "audio.volume", "value": 0.5}),
+            SystemMutation::AudioVolume(0.5),
+        ),
+        (
+            serde_json::json!({"capability": "audio.outputDevice", "value": "sink.main"}),
+            SystemMutation::AudioOutputDevice("sink.main".to_string()),
+        ),
+        (
+            serde_json::json!({"capability": "power.profile", "value": "balanced"}),
+            SystemMutation::PowerProfile(PowerProfile::Balanced),
+        ),
+        (
+            serde_json::json!({"capability": "media.transport", "value": "playPause"}),
+            SystemMutation::MediaTransport(MediaTransport::PlayPause),
+        ),
+    ] {
+        assert_eq!(
+            serde_json::from_value::<SystemMutation>(value)
+                .expect("typed mutation should deserialize"),
+            expected
+        );
+    }
+}
+
+#[test]
+fn system_mutation_rejects_mismatched_values_and_read_only_battery() {
+    for value in [
+        serde_json::json!({"capability": "network.enabled", "value": 0.5}),
+        serde_json::json!({"capability": "audio.volume", "value": true}),
+        serde_json::json!({"capability": "audio.outputDevice", "value": "  "}),
+        serde_json::json!({"capability": "power.profile", "value": "turbo"}),
+        serde_json::json!({"capability": "media.transport", "value": "stop"}),
+        serde_json::json!({"capability": "battery.status", "value": true}),
+    ] {
+        assert!(
+            serde_json::from_value::<SystemMutation>(value.clone()).is_err(),
+            "mutation must be rejected: {value}"
+        );
+    }
 }
 
 #[test]
@@ -401,8 +484,8 @@ fn system_mutation_result_validates_confirmed_readback() {
     let result = validate_system_mutation_result(&fixture("system/valid-mutation.json"))
         .expect("system mutation result should validate");
 
-    assert_eq!(result.capability, CapabilityId::AudioVolume);
-    assert_eq!(result.requested_value, SystemMutationValue::Level(0.72));
+    assert_eq!(result.generation, 42);
+    assert_eq!(result.mutation, SystemMutation::AudioVolume(0.72));
     assert_eq!(
         result.snapshot.audio.expect("audio should exist").volume,
         0.72
@@ -420,8 +503,149 @@ fn system_mutation_result_rejects_unknown_fields_and_invalid_levels() {
     assert!(validate_system_mutation_result(&unknown_field.to_string()).is_err());
 
     let mut invalid_level = original;
-    invalid_level["requestedValue"] = serde_json::json!(1.01);
+    invalid_level["mutation"]["value"] = serde_json::json!(1.01);
     assert!(validate_system_mutation_result(&invalid_level.to_string()).is_err());
+}
+
+#[test]
+fn system_mutation_result_requires_matching_result_and_snapshot_generations() {
+    let source = fixture("system/valid-mutation.json");
+    let mut candidate: serde_json::Value =
+        serde_json::from_str(&source).expect("fixture should be JSON");
+    candidate["snapshot"]["generation"] = serde_json::json!(41);
+
+    assert!(validate_system_mutation_result(&candidate.to_string()).is_err());
+}
+
+#[test]
+fn system_documents_require_positive_caller_supplied_generations() {
+    let mut snapshot: serde_json::Value =
+        serde_json::from_str(&fixture("system/valid.json")).expect("fixture should be JSON");
+    snapshot["generation"] = serde_json::json!(0);
+    assert!(validate_system_snapshot(&snapshot.to_string()).is_err());
+
+    let mut mutation: serde_json::Value =
+        serde_json::from_str(&fixture("system/valid-mutation.json"))
+            .expect("fixture should be JSON");
+    mutation["generation"] = serde_json::json!(0);
+    mutation["snapshot"]["generation"] = serde_json::json!(0);
+    assert!(validate_system_mutation_result(&mutation.to_string()).is_err());
+
+    let mut action_result: serde_json::Value =
+        serde_json::from_str(&fixture("system/valid-session-result-initiated.json"))
+            .expect("fixture should be JSON");
+    action_result["generation"] = serde_json::json!(0);
+    assert!(validate_session_action_result(&action_result.to_string()).is_err());
+}
+
+#[test]
+fn system_snapshot_validates_audio_device_identity_and_default_semantics() {
+    let snapshot = validate_system_snapshot(&fixture("system/valid.json"))
+        .expect("valid audio devices should validate");
+    assert_eq!(
+        snapshot.audio.unwrap().output_devices[0],
+        AudioOutputDevice {
+            id: "sink.main".to_string(),
+            label: "Sleepy Speakers".to_string(),
+            is_default: true,
+        }
+    );
+
+    let original: serde_json::Value =
+        serde_json::from_str(&fixture("system/valid.json")).expect("fixture should be JSON");
+    for candidate in [
+        {
+            let mut value = original.clone();
+            value["audio"]["outputDevices"][1]["id"] = serde_json::json!("sink.main");
+            value
+        },
+        {
+            let mut value = original.clone();
+            value["audio"]["outputDevices"][1]["isDefault"] = serde_json::json!(true);
+            value
+        },
+        {
+            let mut value = original.clone();
+            value["audio"]["outputDeviceId"] = serde_json::json!("sink.missing");
+            value
+        },
+    ] {
+        assert!(validate_system_snapshot(&candidate.to_string()).is_err());
+    }
+}
+
+#[test]
+fn system_snapshot_validates_typed_power_profile_availability() {
+    let snapshot = validate_system_snapshot(&fixture("system/valid.json"))
+        .expect("valid power profiles should validate");
+    assert_eq!(
+        snapshot.power.unwrap().current_profile,
+        Some(PowerProfile::Balanced)
+    );
+
+    let original: serde_json::Value =
+        serde_json::from_str(&fixture("system/valid.json")).expect("fixture should be JSON");
+    for candidate in [
+        {
+            let mut value = original.clone();
+            value["power"]["currentProfile"] = serde_json::json!("turbo");
+            value
+        },
+        {
+            let mut value = original.clone();
+            value["power"]["availableProfiles"] = serde_json::json!(["power-saver", "performance"]);
+            value
+        },
+        {
+            let mut value = original.clone();
+            value["power"]["availableProfiles"] = serde_json::json!(["balanced", "balanced"]);
+            value
+        },
+    ] {
+        assert!(validate_system_snapshot(&candidate.to_string()).is_err());
+    }
+}
+
+#[test]
+fn session_action_request_requires_explicit_confirmation() {
+    let request = validate_session_action_request(&fixture("system/valid-session-request.json"))
+        .expect("confirmed request should validate");
+    assert_eq!(request.action, SessionAction::Reboot);
+    assert!(request.confirmed);
+
+    let mut candidate: serde_json::Value =
+        serde_json::from_str(&fixture("system/valid-session-request.json"))
+            .expect("fixture should be JSON");
+    candidate["confirmed"] = serde_json::json!(false);
+    assert!(validate_session_action_request(&candidate.to_string()).is_err());
+}
+
+#[test]
+fn session_action_result_enforces_status_diagnostic_invariants() {
+    let initiated =
+        validate_session_action_result(&fixture("system/valid-session-result-initiated.json"))
+            .expect("initiated result should validate");
+    assert_eq!(initiated.generation, 43);
+    assert_eq!(initiated.status, SessionActionStatus::Initiated);
+
+    let failed =
+        validate_session_action_result(&fixture("system/valid-session-result-failed.json"))
+            .expect("failed result should validate");
+    assert_eq!(failed.status, SessionActionStatus::Failed);
+    assert!(failed.diagnostic.is_some());
+
+    let initiated_source = fixture("system/valid-session-result-initiated.json");
+    let mut initiated_with_diagnostic: serde_json::Value =
+        serde_json::from_str(&initiated_source).expect("fixture should be JSON");
+    initiated_with_diagnostic["diagnostic"] =
+        serde_json::json!({"kind": "command", "message": "unexpected"});
+    assert!(validate_session_action_result(&initiated_with_diagnostic.to_string()).is_err());
+
+    let failed_source = fixture("system/valid-session-result-failed.json");
+    let mut failed_without_diagnostic: serde_json::Value =
+        serde_json::from_str(&failed_source).expect("fixture should be JSON");
+    failed_without_diagnostic["diagnostic"] = serde_json::Value::Null;
+    assert!(validate_session_action_result(&failed_without_diagnostic.to_string()).is_err());
 }
 
 #[test]

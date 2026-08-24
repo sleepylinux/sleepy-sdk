@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "generation": 43,
+  "action": "reboot",
+  "status": "initiated",
+  "diagnostic": {
+    "kind": "command",
+    "message": "An initiated action must not have this diagnostic"
+  }
+}

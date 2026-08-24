@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "generation": 43,
+  "action": "logout",
+  "status": "failed",
+  "diagnostic": {
+    "kind": "command",
+    "message": "The session command exited unsuccessfully"
+  }
+}

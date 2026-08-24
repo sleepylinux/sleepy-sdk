@@ -9,10 +9,12 @@ pub use keybindings::{
     KNOWN_SEMANTIC_ACTIONS,
 };
 pub use system::{
-    validate_system_mutation_result, validate_system_snapshot, AudioState, BluetoothState,
-    CapabilityDiagnostic, CapabilityErrorKind, CapabilityId, CapabilityState, DisplayState,
-    MediaState, NetworkState, PowerState, SystemMutationResult, SystemMutationValue,
-    SystemSnapshot,
+    validate_session_action_request, validate_session_action_result,
+    validate_system_mutation_result, validate_system_snapshot, AudioOutputDevice, AudioState,
+    BluetoothState, CapabilityDiagnostic, CapabilityErrorKind, CapabilityId, CapabilityState,
+    DisplayState, MediaState, MediaTransport, NetworkState, PowerProfile, PowerState,
+    SessionAction, SessionActionRequest, SessionActionResult, SessionActionStatus, SystemMutation,
+    SystemMutationResult, SystemSnapshot,
 };
 
 use std::{

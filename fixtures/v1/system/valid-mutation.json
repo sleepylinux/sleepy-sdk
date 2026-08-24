@@ -1,9 +1,13 @@
 {
   "schemaVersion": 1,
-  "capability": "audio.volume",
-  "requestedValue": 0.72,
+  "generation": 42,
+  "mutation": {
+    "capability": "audio.volume",
+    "value": 0.72
+  },
   "snapshot": {
     "schemaVersion": 1,
+    "generation": 42,
     "capabilities": {
       "network.enabled": "available",
       "bluetooth.enabled": "unavailable",
@@ -16,51 +20,33 @@
       "display.nightLightEnabled": "available",
       "power.profile": "available",
       "battery.status": "unavailable",
-      "media.transport": "unavailable",
-      "session.lock": "available",
-      "session.logout": "available",
-      "session.reboot": "available",
-      "session.powerOff": "available"
+      "media.transport": "unavailable"
     },
-    "diagnostics": {
-      "bluetooth.enabled": {
-        "kind": "unsupported",
-        "message": "No Bluetooth adapter was found"
-      },
-      "display.brightness": {
-        "kind": "unsupported",
-        "message": "No backlight was found"
-      },
-      "battery.status": {
-        "kind": "unsupported",
-        "message": "No battery was found"
-      },
-      "media.transport": {
-        "kind": "unsupported",
-        "message": "No active media player was found"
-      }
+    "diagnostics": {},
+    "sessionActions": {
+      "lock": "available",
+      "logout": "available",
+      "reboot": "available",
+      "powerOff": "available"
     },
-    "network": {
-      "enabled": true,
-      "connectedName": "Sleepy Wi-Fi",
-      "signalLevel": 0.82
-    },
+    "network": null,
     "bluetooth": null,
     "audio": {
       "volume": 0.72,
       "muted": false,
       "microphoneLevel": 0.4,
       "microphoneMuted": false,
-      "outputDevice": "Sleepy Speakers"
+      "outputDeviceId": "sink.main",
+      "outputDevices": [
+        { "id": "sink.main", "label": "Sleepy Speakers", "isDefault": true }
+      ]
     },
-    "display": {
-      "brightness": null,
-      "nightLightEnabled": false
-    },
+    "display": null,
     "power": {
       "batteryLevel": null,
       "charging": null,
-      "profile": "balanced"
+      "currentProfile": "balanced",
+      "availableProfiles": ["power-saver", "balanced", "performance"]
     },
     "media": null
   }

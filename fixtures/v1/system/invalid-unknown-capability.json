@@ -1,15 +1,29 @@
 {
   "schemaVersion": 1,
+  "generation": 41,
   "capabilities": {
     "network.enabled": "available",
-    "network.signalLevel": "available"
+    "network.signalLevel": "available",
+    "bluetooth.enabled": "unavailable",
+    "audio.volume": "available",
+    "audio.muted": "available",
+    "audio.microphoneLevel": "available",
+    "audio.microphoneMuted": "available",
+    "audio.outputDevice": "available",
+    "display.brightness": "unavailable",
+    "display.nightLightEnabled": "available",
+    "power.profile": "available",
+    "battery.status": "unavailable",
+    "media.transport": "unavailable"
   },
   "diagnostics": {},
-  "network": {
-    "enabled": true,
-    "connectedName": "Sleepy Wi-Fi",
-    "signalLevel": 0.82
+  "sessionActions": {
+    "lock": "available",
+    "logout": "available",
+    "reboot": "available",
+    "powerOff": "available"
   },
+  "network": null,
   "bluetooth": null,
   "audio": null,
   "display": null,

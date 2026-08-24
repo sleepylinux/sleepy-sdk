@@ -1,7 +1,8 @@
 use std::{env, fs, process};
 
 use sleepy_sdk::{
-    validate_plugin_manifest, validate_preset, validate_settings, validate_system_mutation_result,
+    validate_plugin_manifest, validate_preset, validate_session_action_request,
+    validate_session_action_result, validate_settings, validate_system_mutation_result,
     validate_system_snapshot, ContractError,
 };
 
@@ -61,19 +62,27 @@ fn print_usage() {
 }
 
 fn validate_system_document(document: &str) -> Result<(), ContractError> {
-    let mutation_shape = serde_json::from_str::<serde_json::Value>(document)
+    let shape = serde_json::from_str::<serde_json::Value>(document)
         .ok()
-        .is_some_and(|value| {
-            value.as_object().is_some_and(|object| {
-                object.contains_key("capability")
-                    || object.contains_key("requestedValue")
-                    || object.contains_key("snapshot")
+        .and_then(|value| {
+            value.as_object().map(|object| {
+                if object.contains_key("mutation") || object.contains_key("snapshot") {
+                    "mutation"
+                } else if object.contains_key("status") {
+                    "sessionResult"
+                } else if object.contains_key("action") || object.contains_key("confirmed") {
+                    "sessionRequest"
+                } else {
+                    "snapshot"
+                }
             })
-        });
+        })
+        .unwrap_or("snapshot");
 
-    if mutation_shape {
-        validate_system_mutation_result(document).map(|_| ())
-    } else {
-        validate_system_snapshot(document).map(|_| ())
+    match shape {
+        "mutation" => validate_system_mutation_result(document).map(|_| ()),
+        "sessionResult" => validate_session_action_result(document).map(|_| ()),
+        "sessionRequest" => validate_session_action_request(document).map(|_| ()),
+        _ => validate_system_snapshot(document).map(|_| ()),
     }
 }

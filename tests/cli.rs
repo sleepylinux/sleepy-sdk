@@ -50,10 +50,28 @@ fn validates_system_documents() {
         ])
         .status()
         .expect("CLI should run");
+    let request_status = sleepy_contract()
+        .args([
+            "validate",
+            "system",
+            "fixtures/v1/system/valid-session-request.json",
+        ])
+        .status()
+        .expect("CLI should run");
+    let action_result_status = sleepy_contract()
+        .args([
+            "validate",
+            "system",
+            "fixtures/v1/system/valid-session-result-initiated.json",
+        ])
+        .status()
+        .expect("CLI should run");
 
     assert_eq!(valid_status.code(), Some(0));
     assert_eq!(invalid_status.code(), Some(1));
     assert_eq!(mutation_status.code(), Some(0));
+    assert_eq!(request_status.code(), Some(0));
+    assert_eq!(action_result_status.code(), Some(0));
 }
 
 #[test]
@@ -85,7 +103,7 @@ fn reports_mutation_specific_system_document_errors() {
 
     assert_eq!(output.status.code(), Some(1));
     assert!(
-        stderr.contains("missing field `requestedValue`"),
+        stderr.contains("missing field `mutation`"),
         "unexpected diagnostic: {stderr}"
     );
 }

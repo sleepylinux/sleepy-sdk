@@ -170,6 +170,52 @@ fn system_schema_accepts_a_confirmed_mutation_result() {
 }
 
 #[test]
+fn system_schema_accepts_session_action_request_and_results() {
+    let validator = schema("system.schema.json");
+
+    for path in [
+        "system/valid-session-request.json",
+        "system/valid-session-result-initiated.json",
+        "system/valid-session-result-failed.json",
+    ] {
+        assert!(
+            validator.is_valid(&fixture(path)),
+            "schema must accept {path}"
+        );
+    }
+}
+
+#[test]
+fn system_schema_rejects_mismatched_and_read_only_mutations() {
+    let validator = schema("system.schema.json");
+    let original = fixture("system/valid-mutation.json");
+
+    for mutation in [
+        serde_json::json!({"capability": "audio.volume", "value": true}),
+        serde_json::json!({"capability": "network.enabled", "value": 0.5}),
+        serde_json::json!({"capability": "power.profile", "value": "turbo"}),
+        serde_json::json!({"capability": "battery.status", "value": true}),
+    ] {
+        let mut candidate = original.clone();
+        candidate["mutation"] = mutation;
+        assert!(!validator.is_valid(&candidate));
+    }
+}
+
+#[test]
+fn system_schema_enforces_session_status_diagnostic_invariants() {
+    let validator = schema("system.schema.json");
+    let mut initiated_with_diagnostic = fixture("system/valid-session-result-initiated.json");
+    initiated_with_diagnostic["diagnostic"] =
+        serde_json::json!({"kind": "command", "message": "unexpected"});
+    let mut failed_without_diagnostic = fixture("system/valid-session-result-failed.json");
+    failed_without_diagnostic["diagnostic"] = serde_json::Value::Null;
+
+    assert!(!validator.is_valid(&initiated_with_diagnostic));
+    assert!(!validator.is_valid(&failed_without_diagnostic));
+}
+
+#[test]
 fn system_schema_rejects_unknown_capability_ids() {
     let validator = schema("system.schema.json");
 

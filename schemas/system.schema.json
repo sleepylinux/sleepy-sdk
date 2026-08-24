@@ -4,7 +4,9 @@
   "title": "Sleepy System Documents v1",
   "oneOf": [
     { "$ref": "#/$defs/systemSnapshot" },
-    { "$ref": "#/$defs/systemMutationResult" }
+    { "$ref": "#/$defs/systemMutationResult" },
+    { "$ref": "#/$defs/sessionActionRequest" },
+    { "$ref": "#/$defs/sessionActionResult" }
   ],
   "$defs": {
     "normalizedLevel": {
@@ -28,20 +30,36 @@
         "display.nightLightEnabled",
         "power.profile",
         "battery.status",
-        "media.transport",
-        "session.lock",
-        "session.logout",
-        "session.reboot",
-        "session.powerOff"
+        "media.transport"
       ]
+    },
+    "sessionAction": {
+      "enum": ["lock", "logout", "reboot", "powerOff"]
+    },
+    "powerProfile": {
+      "enum": ["power-saver", "balanced", "performance"]
+    },
+    "mediaTransport": {
+      "enum": ["playPause", "next", "previous"]
     },
     "capabilityDiagnostic": {
       "type": "object",
       "additionalProperties": false,
       "required": ["kind", "message"],
       "properties": {
-        "kind": { "enum": ["unsupported", "timeout", "parse", "command", "busy"] },
+        "kind": { "enum": ["unsupported", "busy", "timeout", "parse", "command"] },
         "message": { "type": "string", "pattern": "\\S" }
+      }
+    },
+    "sessionActionsMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lock", "logout", "reboot", "powerOff"],
+      "properties": {
+        "lock": { "$ref": "#/$defs/capabilityState" },
+        "logout": { "$ref": "#/$defs/capabilityState" },
+        "reboot": { "$ref": "#/$defs/capabilityState" },
+        "powerOff": { "$ref": "#/$defs/capabilityState" }
       }
     },
     "networkState": {
@@ -68,16 +86,38 @@
         "connectedDevice": { "type": ["string", "null"] }
       }
     },
+    "audioOutputDevice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "isDefault"],
+      "properties": {
+        "id": { "type": "string", "pattern": "\\S" },
+        "label": { "type": "string", "pattern": "\\S" },
+        "isDefault": { "type": "boolean" }
+      }
+    },
     "audioState": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["volume", "muted", "microphoneLevel", "microphoneMuted", "outputDevice"],
+      "required": [
+        "volume",
+        "muted",
+        "microphoneLevel",
+        "microphoneMuted",
+        "outputDeviceId",
+        "outputDevices"
+      ],
       "properties": {
         "volume": { "$ref": "#/$defs/normalizedLevel" },
         "muted": { "type": "boolean" },
         "microphoneLevel": { "$ref": "#/$defs/normalizedLevel" },
         "microphoneMuted": { "type": "boolean" },
-        "outputDevice": { "type": ["string", "null"] }
+        "outputDeviceId": { "type": ["string", "null"] },
+        "outputDevices": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/audioOutputDevice" }
+        }
       }
     },
     "displayState": {
@@ -97,7 +137,7 @@
     "powerState": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["batteryLevel", "charging", "profile"],
+      "required": ["batteryLevel", "charging", "currentProfile", "availableProfiles"],
       "properties": {
         "batteryLevel": {
           "oneOf": [
@@ -106,7 +146,17 @@
           ]
         },
         "charging": { "type": ["boolean", "null"] },
-        "profile": { "type": ["string", "null"] }
+        "currentProfile": {
+          "oneOf": [
+            { "$ref": "#/$defs/powerProfile" },
+            { "type": "null" }
+          ]
+        },
+        "availableProfiles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/powerProfile" }
+        }
       }
     },
     "mediaState": {
@@ -124,8 +174,10 @@
       "additionalProperties": false,
       "required": [
         "schemaVersion",
+        "generation",
         "capabilities",
         "diagnostics",
+        "sessionActions",
         "network",
         "bluetooth",
         "audio",
@@ -135,6 +187,7 @@
       ],
       "properties": {
         "schemaVersion": { "const": 1 },
+        "generation": { "type": "integer", "minimum": 1 },
         "capabilities": {
           "type": "object",
           "minProperties": 1,
@@ -146,60 +199,139 @@
           "propertyNames": { "$ref": "#/$defs/capabilityId" },
           "additionalProperties": { "$ref": "#/$defs/capabilityDiagnostic" }
         },
+        "sessionActions": { "$ref": "#/$defs/sessionActionsMap" },
         "network": {
-          "oneOf": [
-            { "$ref": "#/$defs/networkState" },
-            { "type": "null" }
-          ]
+          "oneOf": [{ "$ref": "#/$defs/networkState" }, { "type": "null" }]
         },
         "bluetooth": {
-          "oneOf": [
-            { "$ref": "#/$defs/bluetoothState" },
-            { "type": "null" }
-          ]
+          "oneOf": [{ "$ref": "#/$defs/bluetoothState" }, { "type": "null" }]
         },
         "audio": {
-          "oneOf": [
-            { "$ref": "#/$defs/audioState" },
-            { "type": "null" }
-          ]
+          "oneOf": [{ "$ref": "#/$defs/audioState" }, { "type": "null" }]
         },
         "display": {
-          "oneOf": [
-            { "$ref": "#/$defs/displayState" },
-            { "type": "null" }
-          ]
+          "oneOf": [{ "$ref": "#/$defs/displayState" }, { "type": "null" }]
         },
         "power": {
-          "oneOf": [
-            { "$ref": "#/$defs/powerState" },
-            { "type": "null" }
-          ]
+          "oneOf": [{ "$ref": "#/$defs/powerState" }, { "type": "null" }]
         },
         "media": {
-          "oneOf": [
-            { "$ref": "#/$defs/mediaState" },
-            { "type": "null" }
-          ]
+          "oneOf": [{ "$ref": "#/$defs/mediaState" }, { "type": "null" }]
         }
       }
+    },
+    "booleanMutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capability", "value"],
+      "properties": {
+        "capability": {
+          "enum": [
+            "network.enabled",
+            "bluetooth.enabled",
+            "audio.muted",
+            "audio.microphoneMuted",
+            "display.nightLightEnabled"
+          ]
+        },
+        "value": { "type": "boolean" }
+      }
+    },
+    "levelMutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capability", "value"],
+      "properties": {
+        "capability": {
+          "enum": ["audio.volume", "audio.microphoneLevel", "display.brightness"]
+        },
+        "value": { "$ref": "#/$defs/normalizedLevel" }
+      }
+    },
+    "audioDeviceMutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capability", "value"],
+      "properties": {
+        "capability": { "const": "audio.outputDevice" },
+        "value": { "type": "string", "pattern": "\\S" }
+      }
+    },
+    "powerProfileMutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capability", "value"],
+      "properties": {
+        "capability": { "const": "power.profile" },
+        "value": { "$ref": "#/$defs/powerProfile" }
+      }
+    },
+    "mediaTransportMutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capability", "value"],
+      "properties": {
+        "capability": { "const": "media.transport" },
+        "value": { "$ref": "#/$defs/mediaTransport" }
+      }
+    },
+    "systemMutation": {
+      "oneOf": [
+        { "$ref": "#/$defs/booleanMutation" },
+        { "$ref": "#/$defs/levelMutation" },
+        { "$ref": "#/$defs/audioDeviceMutation" },
+        { "$ref": "#/$defs/powerProfileMutation" },
+        { "$ref": "#/$defs/mediaTransportMutation" }
+      ]
     },
     "systemMutationResult": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schemaVersion", "capability", "requestedValue", "snapshot"],
+      "required": ["schemaVersion", "generation", "mutation", "snapshot"],
       "properties": {
         "schemaVersion": { "const": 1 },
-        "capability": { "$ref": "#/$defs/capabilityId" },
-        "requestedValue": {
-          "oneOf": [
-            { "type": "boolean" },
-            { "$ref": "#/$defs/normalizedLevel" },
-            { "type": "string", "pattern": "\\S" }
-          ]
-        },
+        "generation": { "type": "integer", "minimum": 1 },
+        "mutation": { "$ref": "#/$defs/systemMutation" },
         "snapshot": { "$ref": "#/$defs/systemSnapshot" }
       }
+    },
+    "sessionActionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "action", "confirmed"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "action": { "$ref": "#/$defs/sessionAction" },
+        "confirmed": { "const": true }
+      }
+    },
+    "sessionActionResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["schemaVersion", "generation", "action", "status", "diagnostic"],
+          "properties": {
+            "schemaVersion": { "const": 1 },
+            "generation": { "type": "integer", "minimum": 1 },
+            "action": { "$ref": "#/$defs/sessionAction" },
+            "status": { "const": "initiated" },
+            "diagnostic": { "type": "null" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["schemaVersion", "generation", "action", "status", "diagnostic"],
+          "properties": {
+            "schemaVersion": { "const": 1 },
+            "generation": { "type": "integer", "minimum": 1 },
+            "action": { "$ref": "#/$defs/sessionAction" },
+            "status": { "const": "failed" },
+            "diagnostic": { "$ref": "#/$defs/capabilityDiagnostic" }
+          }
+        }
+      ]
     }
   }
 }

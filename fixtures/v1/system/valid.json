@@ -1,5 +1,6 @@
 {
   "schemaVersion": 1,
+  "generation": 41,
   "capabilities": {
     "network.enabled": "available",
     "bluetooth.enabled": "unavailable",
@@ -12,11 +13,7 @@
     "display.nightLightEnabled": "available",
     "power.profile": "available",
     "battery.status": "unavailable",
-    "media.transport": "unavailable",
-    "session.lock": "available",
-    "session.logout": "available",
-    "session.reboot": "available",
-    "session.powerOff": "available"
+    "media.transport": "unavailable"
   },
   "diagnostics": {
     "bluetooth.enabled": {
@@ -36,6 +33,12 @@
       "message": "No active media player was found"
     }
   },
+  "sessionActions": {
+    "lock": "available",
+    "logout": "available",
+    "reboot": "available",
+    "powerOff": "available"
+  },
   "network": {
     "enabled": true,
     "connectedName": "Sleepy Wi-Fi",
@@ -47,7 +50,11 @@
     "muted": false,
     "microphoneLevel": 0.4,
     "microphoneMuted": false,
-    "outputDevice": "Sleepy Speakers"
+    "outputDeviceId": "sink.main",
+    "outputDevices": [
+      { "id": "sink.main", "label": "Sleepy Speakers", "isDefault": true },
+      { "id": "sink.headphones", "label": "Headphones", "isDefault": false }
+    ]
   },
   "display": {
     "brightness": null,
@@ -56,7 +63,8 @@
   "power": {
     "batteryLevel": null,
     "charging": null,
-    "profile": "balanced"
+    "currentProfile": "balanced",
+    "availableProfiles": ["power-saver", "balanced", "performance"]
   },
   "media": null
 }

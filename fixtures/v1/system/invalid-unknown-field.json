@@ -1,40 +1,15 @@
 {
   "schemaVersion": 1,
+  "generation": 41,
   "capabilities": {
-    "network.enabled": "available",
-    "bluetooth.enabled": "unavailable",
-    "audio.volume": "available",
-    "audio.muted": "available",
-    "audio.microphoneLevel": "available",
-    "audio.microphoneMuted": "available",
-    "audio.outputDevice": "available",
-    "display.brightness": "unavailable",
-    "display.nightLightEnabled": "available",
-    "power.profile": "available",
-    "battery.status": "unavailable",
-    "media.transport": "unavailable",
-    "session.lock": "available",
-    "session.logout": "available",
-    "session.reboot": "available",
-    "session.powerOff": "available"
+    "network.enabled": "available"
   },
-  "diagnostics": {
-    "bluetooth.enabled": {
-      "kind": "unsupported",
-      "message": "No Bluetooth adapter was found"
-    },
-    "display.brightness": {
-      "kind": "unsupported",
-      "message": "No backlight was found"
-    },
-    "battery.status": {
-      "kind": "unsupported",
-      "message": "No battery was found"
-    },
-    "media.transport": {
-      "kind": "unsupported",
-      "message": "No active media player was found"
-    }
+  "diagnostics": {},
+  "sessionActions": {
+    "lock": "available",
+    "logout": "available",
+    "reboot": "available",
+    "powerOff": "available"
   },
   "network": {
     "enabled": true,
@@ -43,21 +18,8 @@
     "diagnostic": "not part of v1"
   },
   "bluetooth": null,
-  "audio": {
-    "volume": 0.65,
-    "muted": false,
-    "microphoneLevel": 0.4,
-    "microphoneMuted": false,
-    "outputDevice": "Sleepy Speakers"
-  },
-  "display": {
-    "brightness": null,
-    "nightLightEnabled": false
-  },
-  "power": {
-    "batteryLevel": null,
-    "charging": null,
-    "profile": "balanced"
-  },
+  "audio": null,
+  "display": null,
+  "power": null,
   "media": null
 }

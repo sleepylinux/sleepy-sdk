@@ -287,7 +287,9 @@ pub fn validate_theme_document(input: &str) -> Result<ThemeDocument, ContractErr
         ("textSecondary/background", &colors.text_secondary, 4.5),
         ("textSecondary/surface", &colors.text_secondary, 4.5),
         ("accent/background", &colors.accent, 3.0),
+        ("accent/surface", &colors.accent, 3.0),
         ("control/background", &colors.control, 3.0),
+        ("control/surface", &colors.control, 3.0),
     ] {
         let background = if name.ends_with("surface") {
             &colors.surface

@@ -54,6 +54,37 @@ fn theme_document_rejects_unknown_colors_and_insufficient_contrast() {
 }
 
 #[test]
+fn theme_ui_colors_require_three_to_one_against_background_and_surface() {
+    let valid = serde_json::json!({
+        "schemaVersion": 1,
+        "id": "018f3f4c-8af1-7f6b-bf42-1bd472868e65",
+        "name": "Split",
+        "origin": "user",
+        "appearance": "dark",
+        "effects": "none",
+        "reducedMotion": true,
+        "opaqueFallback": true,
+        "colors": {
+            "background": "#000000",
+            "surface": "#FFFFFF",
+            "textPrimary": "#767676",
+            "textSecondary": "#767676",
+            "accent": "#767676",
+            "control": "#767676"
+        }
+    });
+    validate_theme_document(&valid.to_string()).unwrap();
+
+    let mut accent_only_fails_on_surface = valid.clone();
+    accent_only_fails_on_surface["colors"]["accent"] = serde_json::json!("#FFFFFF");
+    assert!(validate_theme_document(&accent_only_fails_on_surface.to_string()).is_err());
+
+    let mut control_only_fails_on_surface = valid;
+    control_only_fails_on_surface["colors"]["control"] = serde_json::json!("#FFFFFF");
+    assert!(validate_theme_document(&control_only_fails_on_surface.to_string()).is_err());
+}
+
+#[test]
 fn hardware_snapshot_has_typed_ids_and_closed_failure_states() {
     let valid = serde_json::json!({
         "schemaVersion": 1,

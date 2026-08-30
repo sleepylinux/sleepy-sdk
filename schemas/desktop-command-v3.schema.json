@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://sleepy-linux.org/schemas/v3/desktop-command-v3.schema.json",
   "title": "Sleepy desktop command v3",
+  "$comment": "JSON Schema is the mandatory structural validation stage. Rust validation is the mandatory semantic stage for invariants such as request correlation and reused domain validators.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "requestId", "expectedGeneration", "command"],
@@ -25,11 +26,20 @@
     "positiveInteger": { "type": "integer", "minimum": 1, "maximum": 18446744073709551615 },
     "normalized": { "type": "number", "minimum": 0, "maximum": 1 },
     "nonEmpty": { "type": "string", "minLength": 1, "pattern": "^(\\S|\\S.*\\S)$" },
+    "stableId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^(\\S|\\S.*\\S)$" },
     "uuid": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" },
     "systemFamily": {
       "type": "object", "additionalProperties": false,
       "required": ["family", "command"],
-      "properties": { "family": { "const": "system" }, "command": { "$ref": "#/$defs/systemMutation" } }
+      "properties": {
+        "family": { "const": "system" },
+        "command": {
+          "oneOf": [
+            { "$ref": "#/$defs/systemMutation" },
+            { "$ref": "#/$defs/desktopSystemMutation" }
+          ]
+        }
+      }
     },
     "systemMutation": {
       "oneOf": [
@@ -81,7 +91,7 @@
     },
     "audioOutputDevice": {
       "type": "object", "additionalProperties": false, "required": ["capability", "value"],
-      "properties": { "capability": { "const": "audio.outputDevice" }, "value": { "$ref": "#/$defs/nonEmpty" } }
+      "properties": { "capability": { "const": "audio.outputDevice" }, "value": { "$ref": "#/$defs/stableId" } }
     },
     "displayBrightness": {
       "type": "object", "additionalProperties": false, "required": ["capability", "value"],
@@ -94,6 +104,200 @@
     "mediaTransport": {
       "type": "object", "additionalProperties": false, "required": ["capability", "value"],
       "properties": { "capability": { "const": "media.transport" }, "value": { "enum": ["playPause", "next", "previous"] } }
+    },
+    "desktopSystemMutation": {
+      "oneOf": [
+        { "$ref": "#/$defs/networkDomainCommand" },
+        { "$ref": "#/$defs/bluetoothDomainCommand" },
+        { "$ref": "#/$defs/audioDomainCommand" },
+        { "$ref": "#/$defs/mediaDomainCommand" },
+        { "$ref": "#/$defs/displayDomainCommand" },
+        { "$ref": "#/$defs/powerDomainCommand" }
+      ]
+    },
+    "networkDomainCommand": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "action"],
+      "properties": { "domain": { "const": "network" }, "action": { "$ref": "#/$defs/networkAction" } }
+    },
+    "networkAction": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "data"],
+          "properties": { "type": { "const": "setWifiEnabled" }, "data": { "$ref": "#/$defs/enabled" } }
+        },
+        { "type": "object", "additionalProperties": false, "required": ["type"], "properties": { "type": { "const": "scanWifi" } } },
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "data"],
+          "properties": {
+            "type": { "const": "connectWifi" },
+            "data": {
+              "type": "object", "additionalProperties": false, "required": ["accessPointId"],
+              "properties": { "accessPointId": { "$ref": "#/$defs/stableId" } }
+            }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "data"],
+          "properties": {
+            "type": { "const": "disconnect" },
+            "data": {
+              "type": "object", "additionalProperties": false, "required": ["connectionId"],
+              "properties": { "connectionId": { "$ref": "#/$defs/stableId" } }
+            }
+          }
+        }
+      ]
+    },
+    "bluetoothDomainCommand": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "action"],
+      "properties": { "domain": { "const": "bluetooth" }, "action": { "$ref": "#/$defs/bluetoothAction" } }
+    },
+    "bluetoothAction": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "data"],
+          "properties": {
+            "type": { "const": "setPowered" },
+            "data": {
+              "type": "object", "additionalProperties": false, "required": ["powered"],
+              "properties": { "powered": { "type": "boolean" } }
+            }
+          }
+        },
+        { "type": "object", "additionalProperties": false, "required": ["type"], "properties": { "type": { "const": "scan" } } },
+        { "$ref": "#/$defs/bluetoothPairCommand" },
+        { "$ref": "#/$defs/bluetoothConnectCommand" },
+        { "$ref": "#/$defs/bluetoothDisconnectCommand" }
+      ]
+    },
+    "bluetoothPairCommand": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "pair" }, "data": { "$ref": "#/$defs/deviceId" } }
+    },
+    "bluetoothConnectCommand": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "connect" }, "data": { "$ref": "#/$defs/deviceId" } }
+    },
+    "bluetoothDisconnectCommand": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "disconnect" }, "data": { "$ref": "#/$defs/deviceId" } }
+    },
+    "deviceId": {
+      "type": "object", "additionalProperties": false, "required": ["deviceId"],
+      "properties": { "deviceId": { "$ref": "#/$defs/stableId" } }
+    },
+    "audioDomainCommand": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "action"],
+      "properties": { "domain": { "const": "audio" }, "action": { "$ref": "#/$defs/audioAction" } }
+    },
+    "audioAction": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "data"],
+          "properties": { "type": { "const": "setDefaultNode" }, "data": { "$ref": "#/$defs/nodeId" } }
+        },
+        { "$ref": "#/$defs/setNodeVolume" },
+        { "$ref": "#/$defs/setNodeMuted" },
+        { "$ref": "#/$defs/setStreamVolume" },
+        { "$ref": "#/$defs/setStreamMuted" }
+      ]
+    },
+    "nodeId": {
+      "type": "object", "additionalProperties": false, "required": ["nodeId"],
+      "properties": { "nodeId": { "$ref": "#/$defs/stableId" } }
+    },
+    "setNodeVolume": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": {
+        "type": { "const": "setNodeVolume" },
+        "data": {
+          "type": "object", "additionalProperties": false, "required": ["nodeId", "level"],
+          "properties": { "nodeId": { "$ref": "#/$defs/stableId" }, "level": { "$ref": "#/$defs/normalized" } }
+        }
+      }
+    },
+    "setNodeMuted": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": {
+        "type": { "const": "setNodeMuted" },
+        "data": {
+          "type": "object", "additionalProperties": false, "required": ["nodeId", "muted"],
+          "properties": { "nodeId": { "$ref": "#/$defs/stableId" }, "muted": { "type": "boolean" } }
+        }
+      }
+    },
+    "setStreamVolume": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": {
+        "type": { "const": "setStreamVolume" },
+        "data": {
+          "type": "object", "additionalProperties": false, "required": ["streamId", "level"],
+          "properties": { "streamId": { "$ref": "#/$defs/stableId" }, "level": { "$ref": "#/$defs/normalized" } }
+        }
+      }
+    },
+    "setStreamMuted": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": {
+        "type": { "const": "setStreamMuted" },
+        "data": {
+          "type": "object", "additionalProperties": false, "required": ["streamId", "muted"],
+          "properties": { "streamId": { "$ref": "#/$defs/stableId" }, "muted": { "type": "boolean" } }
+        }
+      }
+    },
+    "mediaDomainCommand": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "action"],
+      "properties": { "domain": { "const": "media" }, "action": { "$ref": "#/$defs/mediaAction" } }
+    },
+    "mediaAction": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": {
+        "type": { "const": "transport" },
+        "data": {
+          "type": "object", "additionalProperties": false, "required": ["playerId", "transport"],
+          "properties": {
+            "playerId": { "$ref": "#/$defs/stableId" },
+            "transport": { "enum": ["playPause", "next", "previous"] }
+          }
+        }
+      }
+    },
+    "displayDomainCommand": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "action"],
+      "properties": { "domain": { "const": "display" }, "action": { "$ref": "#/$defs/displayAction" } }
+    },
+    "displayAction": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "data"],
+          "properties": {
+            "type": { "const": "setBrightness" },
+            "data": {
+              "type": "object", "additionalProperties": false, "required": ["outputId", "level"],
+              "properties": { "outputId": { "$ref": "#/$defs/stableId" }, "level": { "$ref": "#/$defs/normalized" } }
+            }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "data"],
+          "properties": { "type": { "const": "setNightLightEnabled" }, "data": { "$ref": "#/$defs/enabled" } }
+        }
+      ]
+    },
+    "powerDomainCommand": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "action"],
+      "properties": { "domain": { "const": "power" }, "action": { "$ref": "#/$defs/powerAction" } }
+    },
+    "powerAction": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": {
+        "type": { "const": "setProfile" },
+        "data": {
+          "type": "object", "additionalProperties": false, "required": ["profile"],
+          "properties": { "profile": { "enum": ["power-saver", "balanced", "performance"] } }
+        }
+      }
     },
     "compositorFamily": {
       "type": "object", "additionalProperties": false,
@@ -146,7 +350,7 @@
     },
     "windowId": {
       "type": "object", "additionalProperties": false, "required": ["windowId"],
-      "properties": { "windowId": { "$ref": "#/$defs/nonEmpty" } }
+      "properties": { "windowId": { "$ref": "#/$defs/stableId" } }
     },
     "windowMove": {
       "type": "object", "additionalProperties": false, "required": ["type", "data"],
@@ -154,7 +358,7 @@
         "type": { "const": "moveWindowToWorkspace" },
         "data": {
           "type": "object", "additionalProperties": false, "required": ["windowId", "workspaceId"],
-          "properties": { "windowId": { "$ref": "#/$defs/nonEmpty" }, "workspaceId": { "$ref": "#/$defs/nonEmpty" } }
+          "properties": { "windowId": { "$ref": "#/$defs/stableId" }, "workspaceId": { "$ref": "#/$defs/stableId" } }
         }
       }
     },
@@ -164,7 +368,7 @@
     },
     "workspaceId": {
       "type": "object", "additionalProperties": false, "required": ["workspaceId"],
-      "properties": { "workspaceId": { "$ref": "#/$defs/nonEmpty" } }
+      "properties": { "workspaceId": { "$ref": "#/$defs/stableId" } }
     },
     "workspaceMove": {
       "type": "object", "additionalProperties": false, "required": ["type", "data"],
@@ -172,7 +376,7 @@
         "type": { "const": "moveWorkspaceToMonitor" },
         "data": {
           "type": "object", "additionalProperties": false, "required": ["workspaceId", "monitorId"],
-          "properties": { "workspaceId": { "$ref": "#/$defs/nonEmpty" }, "monitorId": { "$ref": "#/$defs/nonEmpty" } }
+          "properties": { "workspaceId": { "$ref": "#/$defs/stableId" }, "monitorId": { "$ref": "#/$defs/stableId" } }
         }
       }
     },
@@ -206,7 +410,7 @@
             "type": { "const": "invokeAction" },
             "data": {
               "type": "object", "additionalProperties": false, "required": ["notificationId", "actionId"],
-              "properties": { "notificationId": { "$ref": "#/$defs/positiveInteger" }, "actionId": { "$ref": "#/$defs/nonEmpty" } }
+              "properties": { "notificationId": { "$ref": "#/$defs/positiveInteger" }, "actionId": { "$ref": "#/$defs/stableId" } }
             }
           }
         }
@@ -229,9 +433,12 @@
           "required": ["schemaVersion", "desktopId", "resources"],
           "properties": {
             "schemaVersion": { "const": 2 },
-            "desktopId": { "type": "string", "pattern": "^[^/\\\\]+\\.desktop$" },
-            "actionId": { "$ref": "#/$defs/nonEmpty" },
-            "resources": { "type": "array", "items": { "$ref": "#/$defs/nonEmpty" } }
+            "desktopId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^(?!.*\\.\\.)[^/\\\\]+\\.desktop$" },
+            "actionId": { "$ref": "#/$defs/stableId" },
+            "resources": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1, "maxLength": 4096, "pattern": "^[^\\u0000]+$" }
+            }
           }
         }
       }
@@ -254,7 +461,7 @@
     },
     "themeId": {
       "type": "object", "additionalProperties": false, "required": ["themeId"],
-      "properties": { "themeId": { "$ref": "#/$defs/nonEmpty" } }
+      "properties": { "themeId": { "$ref": "#/$defs/stableId" } }
     },
     "setWallpaper": {
       "type": "object", "additionalProperties": false, "required": ["type", "data"],
@@ -262,7 +469,7 @@
     },
     "wallpaperId": {
       "type": "object", "additionalProperties": false, "required": ["wallpaperId"],
-      "properties": { "wallpaperId": { "$ref": "#/$defs/nonEmpty" } }
+      "properties": { "wallpaperId": { "$ref": "#/$defs/stableId" } }
     },
     "setReducedMotion": {
       "type": "object", "additionalProperties": false, "required": ["type", "data"],
@@ -300,7 +507,7 @@
         "type": { "const": "invokeTrayMenu" },
         "data": {
           "type": "object", "additionalProperties": false, "required": ["itemId", "menuId"],
-          "properties": { "itemId": { "$ref": "#/$defs/nonEmpty" }, "menuId": { "$ref": "#/$defs/nonEmpty" } }
+          "properties": { "itemId": { "$ref": "#/$defs/stableId" }, "menuId": { "$ref": "#/$defs/stableId" } }
         }
       }
     },
@@ -310,7 +517,7 @@
         "type": { "const": "pasteClipboard" },
         "data": {
           "type": "object", "additionalProperties": false, "required": ["entryId"],
-          "properties": { "entryId": { "$ref": "#/$defs/nonEmpty" } }
+          "properties": { "entryId": { "$ref": "#/$defs/stableId" } }
         }
       }
     },
@@ -328,7 +535,7 @@
     },
     "outputId": {
       "type": "object", "additionalProperties": false, "required": ["outputId"],
-      "properties": { "outputId": { "$ref": "#/$defs/nonEmpty" } }
+      "properties": { "outputId": { "$ref": "#/$defs/stableId" } }
     },
     "setGameMode": {
       "type": "object", "additionalProperties": false, "required": ["type", "data"],

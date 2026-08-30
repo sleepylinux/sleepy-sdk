@@ -58,6 +58,57 @@ fn desktop_v3_event_schema_matches_runtime_collection_and_level_bounds() {
 }
 
 #[test]
+fn desktop_v3_event_schema_rejects_ambiguous_workspace_focus_in_full_and_update_documents() {
+    let validator = schema("desktop-event-v3.schema.json");
+    let mut full_snapshot = desktop_fixture("full-snapshot.json");
+    let workspaces = full_snapshot["payload"]["data"]["compositor"]["hyprland"]["data"]
+        ["workspaces"]
+        .as_array_mut()
+        .unwrap();
+    let mut second = workspaces[0].clone();
+    second["id"] = serde_json::json!("second-focused-workspace");
+    workspaces.push(second);
+    assert!(!validator.is_valid(&full_snapshot));
+    assert!(sleepy_sdk::validate_desktop_envelope(&full_snapshot.to_string()).is_err());
+
+    let update_workspaces =
+        full_snapshot["payload"]["data"]["compositor"]["hyprland"]["data"]["workspaces"].clone();
+    let standalone_update = serde_json::json!({
+        "schemaVersion": 3,
+        "generation": 8,
+        "eventId": "018f3f4c-8af1-7f6b-bf42-1bd472869402",
+        "emittedAt": "2026-08-30T12:00:01Z",
+        "cause": { "kind": "external" },
+        "payload": {
+            "type": "domainUpdate",
+            "data": {
+                "topic": "compositor",
+                "update": { "domain": "workspaces", "data": update_workspaces }
+            }
+        }
+    });
+    assert!(!validator.is_valid(&standalone_update));
+    assert!(sleepy_sdk::validate_desktop_envelope(&standalone_update.to_string()).is_err());
+
+    let mut locally_valid_without_graph_context = standalone_update;
+    locally_valid_without_graph_context["payload"]["data"]["update"]["data"]
+        .as_array_mut()
+        .unwrap()
+        .truncate(1);
+    locally_valid_without_graph_context["payload"]["data"]["update"]["data"][0]["monitorId"] =
+        serde_json::json!("monitor-not-carried-by-this-update");
+    assert!(
+        validator.is_valid(&locally_valid_without_graph_context),
+        "standalone workspace updates cannot structurally prove monitor membership"
+    );
+    assert!(
+        sleepy_sdk::validate_desktop_envelope(&locally_valid_without_graph_context.to_string())
+            .is_ok(),
+        "Rust validates standalone local invariants before stateful reconciliation"
+    );
+}
+
+#[test]
 fn desktop_v3_command_schema_has_no_unlock_alternative() {
     let validator = schema("desktop-command-v3.schema.json");
     let mut request = desktop_fixture("command.json");
@@ -315,6 +366,18 @@ fn desktop_v3_shared_corpus_separates_structural_and_semantic_validation() {
     empty_desktop_id["command"] = serde_json::json!({ "family": "launcher", "command": {
         "type": "launch", "data": { "schemaVersion": 2, "desktopId": "", "resources": [] }
     }});
+    let mut newline_traversal_desktop_id = valid_request.clone();
+    newline_traversal_desktop_id["command"] = serde_json::json!({ "family": "launcher", "command": {
+        "type": "launch", "data": { "schemaVersion": 2, "desktopId": "ok\n..evil.desktop", "resources": [] }
+    }});
+    let mut carriage_return_desktop_id = valid_request.clone();
+    carriage_return_desktop_id["command"] = serde_json::json!({ "family": "launcher", "command": {
+        "type": "launch", "data": { "schemaVersion": 2, "desktopId": "ok\rname.desktop", "resources": [] }
+    }});
+    let mut nul_desktop_id = valid_request.clone();
+    nul_desktop_id["command"] = serde_json::json!({ "family": "launcher", "command": {
+        "type": "launch", "data": { "schemaVersion": 2, "desktopId": "ok\0name.desktop", "resources": [] }
+    }});
     let mut nul_resource = valid_request.clone();
     nul_resource["command"] = serde_json::json!({ "family": "launcher", "command": {
         "type": "launch", "data": { "schemaVersion": 2, "desktopId": "App.desktop", "resources": ["file\0name"] }
@@ -342,6 +405,17 @@ fn desktop_v3_shared_corpus_separates_structural_and_semantic_validation() {
         ("launcher desktop ID slash", slash_desktop_id, false),
         ("launcher desktop ID backslash", backslash_desktop_id, false),
         ("empty launcher desktop ID", empty_desktop_id, false),
+        (
+            "launcher desktop ID newline traversal",
+            newline_traversal_desktop_id,
+            false,
+        ),
+        (
+            "launcher desktop ID carriage return",
+            carriage_return_desktop_id,
+            false,
+        ),
+        ("launcher desktop ID NUL", nul_desktop_id, false),
         ("empty launcher resource", empty_resource, false),
         ("NUL launcher resource", nul_resource, false),
         ("oversized stable ID", oversized_id, false),

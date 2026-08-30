@@ -389,7 +389,7 @@
       "required": ["monitors", "workspaces", "windows"],
       "properties": {
         "monitors": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/monitor" } },
-        "workspaces": { "type": "array", "maxItems": 1024, "items": { "$ref": "#/$defs/workspace" } },
+        "workspaces": { "$ref": "#/$defs/workspaceCollection" },
         "windows": { "type": "array", "maxItems": 16384, "items": { "$ref": "#/$defs/window" } }
       }
     },
@@ -410,6 +410,25 @@
         "id": { "$ref": "#/$defs/nonEmpty" }, "name": { "$ref": "#/$defs/nonEmpty" },
         "monitorId": { "$ref": "#/$defs/nonEmpty" }, "focused": { "type": "boolean" }
       }
+    },
+    "workspaceCollection": {
+      "type": "array",
+      "maxItems": 1024,
+      "items": { "$ref": "#/$defs/workspace" },
+      "contains": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "monitorId", "focused"],
+        "properties": {
+          "id": { "$ref": "#/$defs/nonEmpty" },
+          "name": { "$ref": "#/$defs/nonEmpty" },
+          "monitorId": { "$ref": "#/$defs/nonEmpty" },
+          "focused": { "const": true }
+        }
+      },
+      "minContains": 0,
+      "maxContains": 1,
+      "$comment": "At-most-one focused workspace is locally structural. monitorId membership requires a graph-bearing full snapshot or Hyprland update; a standalone workspace update has no monitor collection and Rust intentionally validates only its local invariants before consumers reconcile it with current state."
     },
     "window": {
       "type": "object", "additionalProperties": false,
@@ -718,7 +737,7 @@
         },
         {
           "type": "object", "additionalProperties": false, "required": ["domain", "data"],
-          "properties": { "domain": { "const": "workspaces" }, "data": { "type": "array", "maxItems": 1024, "items": { "$ref": "#/$defs/workspace" } } }
+          "properties": { "domain": { "const": "workspaces" }, "data": { "$ref": "#/$defs/workspaceCollection" } }
         },
         {
           "type": "object", "additionalProperties": false, "required": ["domain", "data"],

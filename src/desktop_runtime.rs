@@ -962,6 +962,17 @@ fn validate_snapshot(snapshot: &DesktopSnapshot) -> Result<(), ContractError> {
             ));
         }
         if hyprland
+            .workspaces
+            .iter()
+            .filter(|workspace| workspace.focused)
+            .count()
+            > 1
+        {
+            return Err(ContractError::new(
+                "Hyprland snapshot may contain at most one focused workspace",
+            ));
+        }
+        if hyprland
             .windows
             .iter()
             .filter(|window| window.focused)
@@ -1235,6 +1246,11 @@ fn validate_compositor_update(update: &DesktopCompositorUpdate) -> Result<(), Co
                 require_non_empty(&workspace.name, "workspace name")?;
                 require_non_empty(&workspace.monitor_id, "workspace monitorId")?;
             }
+            if workspaces.iter().filter(|item| item.focused).count() > 1 {
+                return Err(ContractError::new(
+                    "workspace update may contain at most one focused workspace",
+                ));
+            }
             Ok(())
         }
         DesktopCompositorUpdate::Windows(windows) => {
@@ -1260,6 +1276,12 @@ fn validate_hyprland_snapshot(hyprland: &HyprlandSnapshot) -> Result<(), Contrac
     })?;
     validate_unique_ids(&hyprland.windows, MAX_WINDOWS, "window", |item| &item.id)?;
     if hyprland.monitors.iter().filter(|item| item.focused).count() > 1
+        || hyprland
+            .workspaces
+            .iter()
+            .filter(|item| item.focused)
+            .count()
+            > 1
         || hyprland.windows.iter().filter(|item| item.focused).count() > 1
     {
         return Err(ContractError::new(
@@ -1486,6 +1508,11 @@ fn validate_command(command: &DesktopCommand) -> Result<(), ContractError> {
         },
         DesktopCommand::Launcher(LauncherCommand::Launch(request)) => {
             validate_desktop_launch_request(&serialize(request, "desktop launch request")?)?;
+            if request.desktop_id.chars().any(char::is_control) {
+                return Err(ContractError::new(
+                    "launcher desktopId must not contain control characters",
+                ));
+            }
             require_maximum_length(&request.desktop_id, 256, "launcher desktopId")?;
             if let Some(action_id) = &request.action_id {
                 require_bounded_non_empty(action_id, 256, "launcher actionId")?;

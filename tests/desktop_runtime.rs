@@ -444,6 +444,52 @@ fn snapshot_graph_rejects_orphan_references_and_ambiguous_focus() {
 }
 
 #[test]
+fn focused_workspace_cardinality_is_enforced_in_full_and_standalone_updates() {
+    let mut full_snapshot = snapshot_value();
+    let workspaces = full_snapshot
+        .pointer_mut("/payload/data/compositor/hyprland/data/workspaces")
+        .unwrap()
+        .as_array_mut()
+        .unwrap();
+    let mut second = workspaces[0].clone();
+    second["id"] = serde_json::json!("second-focused-workspace");
+    workspaces.push(second);
+    assert!(
+        validate_desktop_envelope(&full_snapshot.to_string()).is_err(),
+        "a full snapshot must not expose two focused workspaces"
+    );
+
+    let snapshot = snapshot_value();
+    let mut update_workspaces = snapshot
+        .pointer("/payload/data/compositor/hyprland/data/workspaces")
+        .unwrap()
+        .as_array()
+        .unwrap()
+        .clone();
+    let mut second = update_workspaces[0].clone();
+    second["id"] = serde_json::json!("second-focused-workspace");
+    update_workspaces.push(second);
+    let standalone_update = serde_json::json!({
+        "schemaVersion": 3,
+        "generation": 8,
+        "eventId": "018f3f4c-8af1-7f6b-bf42-1bd472869401",
+        "emittedAt": "2026-08-30T12:00:01Z",
+        "cause": { "kind": "external" },
+        "payload": {
+            "type": "domainUpdate",
+            "data": {
+                "topic": "compositor",
+                "update": { "domain": "workspaces", "data": update_workspaces }
+            }
+        }
+    });
+    assert!(
+        validate_desktop_envelope(&standalone_update.to_string()).is_err(),
+        "a standalone workspace update must enforce its local focus cardinality"
+    );
+}
+
+#[test]
 fn failed_result_diagnostics_are_nonempty_and_timestamps_are_canonical_rfc3339_utc() {
     let empty_diagnostic = serde_json::json!({
         "schemaVersion": 3,

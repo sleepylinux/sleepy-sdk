@@ -339,6 +339,7 @@ pub struct Window {
     pub fullscreen: bool,
     pub floating: bool,
     pub pinned: bool,
+    pub grouped: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

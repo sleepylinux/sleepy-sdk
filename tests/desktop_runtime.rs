@@ -38,6 +38,74 @@ fn reconnect_fixture_round_trips_without_losing_any_desktop_topic() {
 }
 
 #[test]
+fn hyprland_group_membership_is_required_and_round_trips_without_address_topology() {
+    let ungrouped = snapshot_value();
+    let ungrouped_envelope =
+        validate_desktop_envelope(&ungrouped.to_string()).expect("grouped false must validate");
+    let ungrouped_round_trip =
+        serde_json::to_value(ungrouped_envelope).expect("ungrouped snapshot must serialize");
+    assert_eq!(
+        ungrouped_round_trip.pointer("/payload/data/compositor/hyprland/data/windows/0/grouped"),
+        Some(&serde_json::json!(false))
+    );
+
+    let mut grouped = snapshot_value();
+    grouped["payload"]["data"]["compositor"]["hyprland"]["data"]["windows"][0]["grouped"] =
+        serde_json::json!(true);
+    let grouped_envelope =
+        validate_desktop_envelope(&grouped.to_string()).expect("grouped true must validate");
+    assert_eq!(
+        serde_json::to_value(grouped_envelope).expect("grouped snapshot must serialize"),
+        grouped
+    );
+
+    let mut missing = snapshot_value();
+    missing["payload"]["data"]["compositor"]["hyprland"]["data"]["windows"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("grouped");
+    assert!(
+        validate_desktop_envelope(&missing.to_string()).is_err(),
+        "group membership must never default during readback"
+    );
+
+    let mut address_topology = snapshot_value();
+    address_topology["payload"]["data"]["compositor"]["hyprland"]["data"]["windows"][0]
+        ["groupAddresses"] = serde_json::json!(["0x1234", "0x5678"]);
+    assert!(
+        validate_desktop_envelope(&address_topology.to_string()).is_err(),
+        "the v3 UI contract must not expose Hyprland group address topology"
+    );
+}
+
+#[test]
+fn hyprland_window_updates_cannot_omit_group_membership() {
+    let snapshot = snapshot_value();
+    let mut window =
+        snapshot["payload"]["data"]["compositor"]["hyprland"]["data"]["windows"][0].clone();
+    window.as_object_mut().unwrap().remove("grouped");
+    let update = serde_json::json!({
+        "schemaVersion": 3,
+        "generation": 8,
+        "eventId": "018f3f4c-8af1-7f6b-bf42-1bd472869405",
+        "emittedAt": "2026-08-30T12:00:01Z",
+        "cause": { "kind": "external" },
+        "payload": {
+            "type": "domainUpdate",
+            "data": {
+                "topic": "compositor",
+                "update": { "domain": "windows", "data": [window] }
+            }
+        }
+    });
+
+    assert!(
+        validate_desktop_envelope(&update.to_string()).is_err(),
+        "incremental readback must not default group membership"
+    );
+}
+
+#[test]
 fn command_fixture_is_a_deduplicated_generation_guarded_request() {
     let request = validate_desktop_request(COMMAND).expect("command fixture must validate");
     assert_eq!(request.schema_version, DESKTOP_WIRE_VERSION);

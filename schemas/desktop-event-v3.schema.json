@@ -432,12 +432,13 @@
     },
     "window": {
       "type": "object", "additionalProperties": false,
-      "required": ["id", "title", "applicationId", "workspaceId", "focused", "fullscreen", "floating", "pinned"],
+      "required": ["id", "title", "applicationId", "workspaceId", "focused", "fullscreen", "floating", "pinned", "grouped"],
       "properties": {
         "id": { "$ref": "#/$defs/nonEmpty" }, "title": { "type": "string" },
         "applicationId": { "$ref": "#/$defs/nonEmpty" }, "workspaceId": { "$ref": "#/$defs/nonEmpty" },
         "focused": { "type": "boolean" }, "fullscreen": { "type": "boolean" },
-        "floating": { "type": "boolean" }, "pinned": { "type": "boolean" }
+        "floating": { "type": "boolean" }, "pinned": { "type": "boolean" },
+        "grouped": { "type": "boolean" }
       }
     },
     "notifications": {

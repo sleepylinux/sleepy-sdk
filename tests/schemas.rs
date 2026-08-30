@@ -41,6 +41,65 @@ fn desktop_v3_schemas_accept_the_canonical_fixtures_and_reject_unknown_fields() 
 }
 
 #[test]
+fn desktop_v3_schema_and_rust_require_boolean_group_membership_only() {
+    let validator = schema("desktop-event-v3.schema.json");
+    let ungrouped = desktop_fixture("full-snapshot.json");
+    let mut grouped = ungrouped.clone();
+    grouped["payload"]["data"]["compositor"]["hyprland"]["data"]["windows"][0]["grouped"] =
+        serde_json::json!(true);
+    let mut missing = ungrouped.clone();
+    missing["payload"]["data"]["compositor"]["hyprland"]["data"]["windows"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("grouped");
+    let mut address_topology = ungrouped.clone();
+    address_topology["payload"]["data"]["compositor"]["hyprland"]["data"]["windows"][0]
+        ["groupAddresses"] = serde_json::json!(["0x1234", "0x5678"]);
+
+    for (name, document, accepted) in [
+        ("ungrouped window", ungrouped, true),
+        ("grouped window", grouped, true),
+        ("missing group membership", missing, false),
+        ("raw group address topology", address_topology, false),
+    ] {
+        assert_eq!(validator.is_valid(&document), accepted, "schema: {name}");
+        assert_eq!(
+            sleepy_sdk::validate_desktop_envelope(&document.to_string()).is_ok(),
+            accepted,
+            "Rust: {name}"
+        );
+    }
+}
+
+#[test]
+fn desktop_v3_schema_rejects_window_updates_without_group_membership() {
+    let validator = schema("desktop-event-v3.schema.json");
+    let snapshot = desktop_fixture("full-snapshot.json");
+    let mut window =
+        snapshot["payload"]["data"]["compositor"]["hyprland"]["data"]["windows"][0].clone();
+    window.as_object_mut().unwrap().remove("grouped");
+    let update = serde_json::json!({
+        "schemaVersion": 3,
+        "generation": 8,
+        "eventId": "018f3f4c-8af1-7f6b-bf42-1bd472869406",
+        "emittedAt": "2026-08-30T12:00:01Z",
+        "cause": { "kind": "external" },
+        "payload": {
+            "type": "domainUpdate",
+            "data": {
+                "topic": "compositor",
+                "update": { "domain": "windows", "data": [window] }
+            }
+        }
+    });
+
+    assert!(
+        !validator.is_valid(&update),
+        "incremental schema must require explicit group membership"
+    );
+}
+
+#[test]
 fn desktop_v3_event_schema_matches_runtime_collection_and_level_bounds() {
     let validator = schema("desktop-event-v3.schema.json");
     let mut invalid_level = desktop_fixture("full-snapshot.json");

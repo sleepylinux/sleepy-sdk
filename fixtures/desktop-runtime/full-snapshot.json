@@ -56,7 +56,7 @@
           "data": {
             "monitors": [{ "id": "DP-1", "name": "DP-1", "width": 2560, "height": 1440, "scale": 1.0, "focused": true }],
             "workspaces": [{ "id": "1", "name": "1", "monitorId": "DP-1", "focused": true }],
-            "windows": [{ "id": "0x1234", "title": "Terminal", "applicationId": "com.mitchellh.ghostty", "workspaceId": "1", "focused": true, "fullscreen": false, "floating": false, "pinned": false }]
+            "windows": [{ "id": "0x1234", "title": "Terminal", "applicationId": "com.mitchellh.ghostty", "workspaceId": "1", "focused": true, "fullscreen": false, "floating": false, "pinned": false, "grouped": false }]
           }
         }
       },

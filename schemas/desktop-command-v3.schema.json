@@ -1,0 +1,353 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sleepy-linux.org/schemas/v3/desktop-command-v3.schema.json",
+  "title": "Sleepy desktop command v3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "requestId", "expectedGeneration", "command"],
+  "properties": {
+    "schemaVersion": { "const": 3 },
+    "requestId": { "$ref": "#/$defs/uuid" },
+    "expectedGeneration": { "$ref": "#/$defs/positiveInteger" },
+    "command": {
+      "oneOf": [
+        { "$ref": "#/$defs/systemFamily" },
+        { "$ref": "#/$defs/compositorFamily" },
+        { "$ref": "#/$defs/notificationFamily" },
+        { "$ref": "#/$defs/launcherFamily" },
+        { "$ref": "#/$defs/appearanceFamily" },
+        { "$ref": "#/$defs/utilityFamily" },
+        { "$ref": "#/$defs/sessionFamily" }
+      ]
+    }
+  },
+  "$defs": {
+    "positiveInteger": { "type": "integer", "minimum": 1, "maximum": 18446744073709551615 },
+    "normalized": { "type": "number", "minimum": 0, "maximum": 1 },
+    "nonEmpty": { "type": "string", "minLength": 1, "pattern": "^(\\S|\\S.*\\S)$" },
+    "uuid": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" },
+    "systemFamily": {
+      "type": "object", "additionalProperties": false,
+      "required": ["family", "command"],
+      "properties": { "family": { "const": "system" }, "command": { "$ref": "#/$defs/systemMutation" } }
+    },
+    "systemMutation": {
+      "oneOf": [
+        { "$ref": "#/$defs/networkEnabled" },
+        { "$ref": "#/$defs/bluetoothEnabled" },
+        { "$ref": "#/$defs/audioVolume" },
+        { "$ref": "#/$defs/audioMuted" },
+        { "$ref": "#/$defs/audioMicrophoneLevel" },
+        { "$ref": "#/$defs/audioMicrophoneMuted" },
+        { "$ref": "#/$defs/audioOutputDevice" },
+        { "$ref": "#/$defs/displayBrightness" },
+        { "$ref": "#/$defs/displayNightLightEnabled" },
+        { "$ref": "#/$defs/powerProfile" },
+        { "$ref": "#/$defs/mediaTransport" }
+      ]
+    },
+    "networkEnabled": { "$ref": "#/$defs/booleanNetworkEnabled" },
+    "bluetoothEnabled": { "$ref": "#/$defs/booleanBluetoothEnabled" },
+    "audioMuted": { "$ref": "#/$defs/booleanAudioMuted" },
+    "audioMicrophoneMuted": { "$ref": "#/$defs/booleanAudioMicrophoneMuted" },
+    "displayNightLightEnabled": { "$ref": "#/$defs/booleanDisplayNightLightEnabled" },
+    "booleanNetworkEnabled": {
+      "type": "object", "additionalProperties": false, "required": ["capability", "value"],
+      "properties": { "capability": { "const": "network.enabled" }, "value": { "type": "boolean" } }
+    },
+    "booleanBluetoothEnabled": {
+      "type": "object", "additionalProperties": false, "required": ["capability", "value"],
+      "properties": { "capability": { "const": "bluetooth.enabled" }, "value": { "type": "boolean" } }
+    },
+    "booleanAudioMuted": {
+      "type": "object", "additionalProperties": false, "required": ["capability", "value"],
+      "properties": { "capability": { "const": "audio.muted" }, "value": { "type": "boolean" } }
+    },
+    "booleanAudioMicrophoneMuted": {
+      "type": "object", "additionalProperties": false, "required": ["capability", "value"],
+      "properties": { "capability": { "const": "audio.microphoneMuted" }, "value": { "type": "boolean" } }
+    },
+    "booleanDisplayNightLightEnabled": {
+      "type": "object", "additionalProperties": false, "required": ["capability", "value"],
+      "properties": { "capability": { "const": "display.nightLightEnabled" }, "value": { "type": "boolean" } }
+    },
+    "audioVolume": {
+      "type": "object", "additionalProperties": false, "required": ["capability", "value"],
+      "properties": { "capability": { "const": "audio.volume" }, "value": { "$ref": "#/$defs/normalized" } }
+    },
+    "audioMicrophoneLevel": {
+      "type": "object", "additionalProperties": false, "required": ["capability", "value"],
+      "properties": { "capability": { "const": "audio.microphoneLevel" }, "value": { "$ref": "#/$defs/normalized" } }
+    },
+    "audioOutputDevice": {
+      "type": "object", "additionalProperties": false, "required": ["capability", "value"],
+      "properties": { "capability": { "const": "audio.outputDevice" }, "value": { "$ref": "#/$defs/nonEmpty" } }
+    },
+    "displayBrightness": {
+      "type": "object", "additionalProperties": false, "required": ["capability", "value"],
+      "properties": { "capability": { "const": "display.brightness" }, "value": { "$ref": "#/$defs/normalized" } }
+    },
+    "powerProfile": {
+      "type": "object", "additionalProperties": false, "required": ["capability", "value"],
+      "properties": { "capability": { "const": "power.profile" }, "value": { "enum": ["power-saver", "balanced", "performance"] } }
+    },
+    "mediaTransport": {
+      "type": "object", "additionalProperties": false, "required": ["capability", "value"],
+      "properties": { "capability": { "const": "media.transport" }, "value": { "enum": ["playPause", "next", "previous"] } }
+    },
+    "compositorFamily": {
+      "type": "object", "additionalProperties": false,
+      "required": ["family", "command"],
+      "properties": { "family": { "const": "compositor" }, "command": { "$ref": "#/$defs/hyprlandCommand" } }
+    },
+    "hyprlandCommand": {
+      "oneOf": [
+        { "$ref": "#/$defs/windowFocus" },
+        { "$ref": "#/$defs/windowMove" },
+        { "$ref": "#/$defs/windowClose" },
+        { "$ref": "#/$defs/workspaceFocus" },
+        { "$ref": "#/$defs/workspaceMove" },
+        { "$ref": "#/$defs/windowFullscreen" },
+        { "$ref": "#/$defs/windowFloating" },
+        { "$ref": "#/$defs/windowPinned" },
+        { "$ref": "#/$defs/windowGroup" },
+        { "$ref": "#/$defs/hyprlandExit" }
+      ]
+    },
+    "windowFocus": { "$ref": "#/$defs/focusWindowCommand" },
+    "windowClose": { "$ref": "#/$defs/closeWindowCommand" },
+    "windowFullscreen": { "$ref": "#/$defs/toggleFullscreenCommand" },
+    "windowFloating": { "$ref": "#/$defs/toggleFloatingCommand" },
+    "windowPinned": { "$ref": "#/$defs/togglePinnedCommand" },
+    "windowGroup": { "$ref": "#/$defs/toggleGroupCommand" },
+    "focusWindowCommand": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "focusWindow" }, "data": { "$ref": "#/$defs/windowId" } }
+    },
+    "closeWindowCommand": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "closeWindow" }, "data": { "$ref": "#/$defs/windowId" } }
+    },
+    "toggleFullscreenCommand": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "toggleFullscreen" }, "data": { "$ref": "#/$defs/windowId" } }
+    },
+    "toggleFloatingCommand": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "toggleFloating" }, "data": { "$ref": "#/$defs/windowId" } }
+    },
+    "togglePinnedCommand": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "togglePinned" }, "data": { "$ref": "#/$defs/windowId" } }
+    },
+    "toggleGroupCommand": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "toggleGroup" }, "data": { "$ref": "#/$defs/windowId" } }
+    },
+    "windowId": {
+      "type": "object", "additionalProperties": false, "required": ["windowId"],
+      "properties": { "windowId": { "$ref": "#/$defs/nonEmpty" } }
+    },
+    "windowMove": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": {
+        "type": { "const": "moveWindowToWorkspace" },
+        "data": {
+          "type": "object", "additionalProperties": false, "required": ["windowId", "workspaceId"],
+          "properties": { "windowId": { "$ref": "#/$defs/nonEmpty" }, "workspaceId": { "$ref": "#/$defs/nonEmpty" } }
+        }
+      }
+    },
+    "workspaceFocus": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "focusWorkspace" }, "data": { "$ref": "#/$defs/workspaceId" } }
+    },
+    "workspaceId": {
+      "type": "object", "additionalProperties": false, "required": ["workspaceId"],
+      "properties": { "workspaceId": { "$ref": "#/$defs/nonEmpty" } }
+    },
+    "workspaceMove": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": {
+        "type": { "const": "moveWorkspaceToMonitor" },
+        "data": {
+          "type": "object", "additionalProperties": false, "required": ["workspaceId", "monitorId"],
+          "properties": { "workspaceId": { "$ref": "#/$defs/nonEmpty" }, "monitorId": { "$ref": "#/$defs/nonEmpty" } }
+        }
+      }
+    },
+    "hyprlandExit": {
+      "type": "object", "additionalProperties": false, "required": ["type"],
+      "properties": { "type": { "const": "exit" } }
+    },
+    "notificationFamily": {
+      "type": "object", "additionalProperties": false, "required": ["family", "command"],
+      "properties": { "family": { "const": "notification" }, "command": { "$ref": "#/$defs/notificationCommand" } }
+    },
+    "notificationCommand": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "data"],
+          "properties": {
+            "type": { "const": "setDnd" },
+            "data": { "type": "object", "additionalProperties": false, "required": ["enabled"], "properties": { "enabled": { "type": "boolean" } } }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "data"],
+          "properties": {
+            "type": { "const": "archive" },
+            "data": { "$ref": "#/$defs/notificationId" }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "data"],
+          "properties": {
+            "type": { "const": "invokeAction" },
+            "data": {
+              "type": "object", "additionalProperties": false, "required": ["notificationId", "actionId"],
+              "properties": { "notificationId": { "$ref": "#/$defs/positiveInteger" }, "actionId": { "$ref": "#/$defs/nonEmpty" } }
+            }
+          }
+        }
+      ]
+    },
+    "notificationId": {
+      "type": "object", "additionalProperties": false, "required": ["notificationId"],
+      "properties": { "notificationId": { "$ref": "#/$defs/positiveInteger" } }
+    },
+    "launcherFamily": {
+      "type": "object", "additionalProperties": false, "required": ["family", "command"],
+      "properties": { "family": { "const": "launcher" }, "command": { "$ref": "#/$defs/launcherCommand" } }
+    },
+    "launcherCommand": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": {
+        "type": { "const": "launch" },
+        "data": {
+          "type": "object", "additionalProperties": false,
+          "required": ["schemaVersion", "desktopId", "resources"],
+          "properties": {
+            "schemaVersion": { "const": 2 },
+            "desktopId": { "type": "string", "pattern": "^[^/\\\\]+\\.desktop$" },
+            "actionId": { "$ref": "#/$defs/nonEmpty" },
+            "resources": { "type": "array", "items": { "$ref": "#/$defs/nonEmpty" } }
+          }
+        }
+      }
+    },
+    "appearanceFamily": {
+      "type": "object", "additionalProperties": false, "required": ["family", "command"],
+      "properties": { "family": { "const": "appearance" }, "command": { "$ref": "#/$defs/appearanceCommand" } }
+    },
+    "appearanceCommand": {
+      "oneOf": [
+        { "$ref": "#/$defs/applyTheme" },
+        { "$ref": "#/$defs/setWallpaper" },
+        { "$ref": "#/$defs/setReducedMotion" },
+        { "$ref": "#/$defs/setOpaque" }
+      ]
+    },
+    "applyTheme": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "applyTheme" }, "data": { "$ref": "#/$defs/themeId" } }
+    },
+    "themeId": {
+      "type": "object", "additionalProperties": false, "required": ["themeId"],
+      "properties": { "themeId": { "$ref": "#/$defs/nonEmpty" } }
+    },
+    "setWallpaper": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "setWallpaper" }, "data": { "$ref": "#/$defs/wallpaperId" } }
+    },
+    "wallpaperId": {
+      "type": "object", "additionalProperties": false, "required": ["wallpaperId"],
+      "properties": { "wallpaperId": { "$ref": "#/$defs/nonEmpty" } }
+    },
+    "setReducedMotion": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "setReducedMotion" }, "data": { "$ref": "#/$defs/enabled" } }
+    },
+    "setOpaque": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "setOpaque" }, "data": { "$ref": "#/$defs/enabled" } }
+    },
+    "enabled": {
+      "type": "object", "additionalProperties": false, "required": ["enabled"],
+      "properties": { "enabled": { "type": "boolean" } }
+    },
+    "utilityFamily": {
+      "type": "object", "additionalProperties": false, "required": ["family", "command"],
+      "properties": { "family": { "const": "utility" }, "command": { "$ref": "#/$defs/utilityCommand" } }
+    },
+    "utilityCommand": {
+      "oneOf": [
+        { "$ref": "#/$defs/invokeTrayMenu" },
+        { "$ref": "#/$defs/pasteClipboard" },
+        { "$ref": "#/$defs/clearClipboard" },
+        { "$ref": "#/$defs/setIdleInhibited" },
+        { "$ref": "#/$defs/startRecording" },
+        { "$ref": "#/$defs/pauseRecording" },
+        { "$ref": "#/$defs/stopRecording" },
+        { "$ref": "#/$defs/screenshot" },
+        { "$ref": "#/$defs/pickColor" },
+        { "$ref": "#/$defs/setGameMode" }
+      ]
+    },
+    "invokeTrayMenu": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": {
+        "type": { "const": "invokeTrayMenu" },
+        "data": {
+          "type": "object", "additionalProperties": false, "required": ["itemId", "menuId"],
+          "properties": { "itemId": { "$ref": "#/$defs/nonEmpty" }, "menuId": { "$ref": "#/$defs/nonEmpty" } }
+        }
+      }
+    },
+    "pasteClipboard": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": {
+        "type": { "const": "pasteClipboard" },
+        "data": {
+          "type": "object", "additionalProperties": false, "required": ["entryId"],
+          "properties": { "entryId": { "$ref": "#/$defs/nonEmpty" } }
+        }
+      }
+    },
+    "setIdleInhibited": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "setIdleInhibited" }, "data": { "$ref": "#/$defs/enabled" } }
+    },
+    "startRecording": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "startRecording" }, "data": { "$ref": "#/$defs/outputId" } }
+    },
+    "screenshot": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "screenshot" }, "data": { "$ref": "#/$defs/outputId" } }
+    },
+    "outputId": {
+      "type": "object", "additionalProperties": false, "required": ["outputId"],
+      "properties": { "outputId": { "$ref": "#/$defs/nonEmpty" } }
+    },
+    "setGameMode": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": { "type": { "const": "setGameMode" }, "data": { "$ref": "#/$defs/enabled" } }
+    },
+    "clearClipboard": { "$ref": "#/$defs/clearClipboardUnit" },
+    "pauseRecording": { "$ref": "#/$defs/pauseRecordingUnit" },
+    "stopRecording": { "$ref": "#/$defs/stopRecordingUnit" },
+    "pickColor": { "$ref": "#/$defs/pickColorUnit" },
+    "clearClipboardUnit": { "type": "object", "additionalProperties": false, "required": ["type"], "properties": { "type": { "const": "clearClipboard" } } },
+    "pauseRecordingUnit": { "type": "object", "additionalProperties": false, "required": ["type"], "properties": { "type": { "const": "pauseRecording" } } },
+    "stopRecordingUnit": { "type": "object", "additionalProperties": false, "required": ["type"], "properties": { "type": { "const": "stopRecording" } } },
+    "pickColorUnit": { "type": "object", "additionalProperties": false, "required": ["type"], "properties": { "type": { "const": "pickColor" } } },
+    "sessionFamily": {
+      "type": "object", "additionalProperties": false, "required": ["family", "command"],
+      "properties": {
+        "family": { "const": "session" },
+        "command": { "enum": ["lock", "suspend", "logout", "reboot", "powerOff"] }
+      }
+    }
+  }
+}

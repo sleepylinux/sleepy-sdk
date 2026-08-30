@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 3,
+  "generation": 7,
+  "eventId": "018f3f4c-8af1-7f6b-bf42-1bd472868e65",
+  "emittedAt": "2026-08-30T12:00:00Z",
+  "cause": { "kind": "lifecycle" },
+  "payload": {
+    "type": "fullSnapshot",
+    "data": {
+      "system": {
+        "network": {
+          "status": "available",
+          "data": {
+            "wifiEnabled": true,
+            "accessPoints": [{ "id": "ap-home", "ssid": "Sleepy", "signalLevel": 0.82, "secured": true }],
+            "connections": [{ "id": "wifi-home", "name": "Sleepy", "kind": "wifi", "connected": true }]
+          }
+        },
+        "bluetooth": {
+          "status": "available",
+          "data": {
+            "powered": true,
+            "devices": [{ "id": "headphones", "name": "Headphones", "paired": true, "connected": true }]
+          }
+        },
+        "audio": {
+          "status": "available",
+          "data": {
+            "nodes": [{ "id": "speaker", "name": "Speakers", "kind": "output", "volume": 0.42, "muted": false, "isDefault": true }],
+            "streams": [{ "id": "stream-firefox", "name": "Firefox", "nodeId": "speaker", "volume": 0.6, "muted": false }]
+          }
+        },
+        "media": {
+          "status": "available",
+          "data": {
+            "players": [{ "id": "firefox.instance1", "identity": "Firefox", "title": "Quiet Morning", "artist": "Sleepy", "playing": true, "progress": 0.25 }]
+          }
+        },
+        "lock": { "secure": false }
+      },
+      "compositor": {
+        "hyprland": {
+          "status": "available",
+          "data": {
+            "monitors": [{ "id": "DP-1", "name": "DP-1", "width": 2560, "height": 1440, "scale": 1.0, "focused": true }],
+            "workspaces": [{ "id": "1", "name": "1", "monitorId": "DP-1", "focused": true }],
+            "windows": [{ "id": "0x1234", "title": "Terminal", "applicationId": "com.mitchellh.ghostty", "workspaceId": "1", "focused": true, "fullscreen": false, "floating": false, "pinned": false }]
+          }
+        }
+      },
+      "notifications": {
+        "dnd": false,
+        "active": [{ "schemaVersion": 2, "id": 1, "applicationId": "org.example.App", "summary": "Ready", "body": "Desktop ready", "urgency": "normal", "createdAt": "2026-08-30T12:00:00Z", "read": false, "archived": false, "actions": [] }]
+      },
+      "launcher": {
+        "entries": [{ "id": "org.mozilla.firefox.desktop", "name": "Firefox", "icon": "firefox" }]
+      },
+      "calendar": {
+        "schemaVersion": 2,
+        "providerId": "local-ics",
+        "windowStart": "2026-08-30T00:00:00Z",
+        "windowEnd": "2026-09-01T00:00:00Z",
+        "events": [{ "id": "meeting@example", "summary": "Meeting", "startsAt": "2026-08-30T14:00:00Z", "endsAt": "2026-08-30T15:00:00Z", "allDay": false, "sourceId": "work.ics" }],
+        "sourceErrors": []
+      },
+      "weather": {
+        "schemaVersion": 2,
+        "providerId": "met.no",
+        "location": { "displayName": "Prague", "latitude": 50.0755, "longitude": 14.4378 },
+        "status": "online",
+        "cache": "fresh",
+        "attribution": "Weather data: MET Norway",
+        "forecast": [{ "at": "2026-08-30T12:00:00Z", "temperatureC": 18.0, "symbol": "cloudy" }]
+      },
+      "appearance": {
+        "theme": {
+          "schemaVersion": 1,
+          "id": "018f3f4c-8af1-7f6b-bf42-1bd472868e67",
+          "name": "Moon",
+          "origin": "user",
+          "appearance": "dark",
+          "effects": "reduced",
+          "reducedMotion": true,
+          "opaqueFallback": true,
+          "colors": { "background": "#101018", "surface": "#202030", "textPrimary": "#ffffff", "textSecondary": "#d0d0df", "accent": "#b9a7ff", "control": "#b9a7ff" }
+        },
+        "wallpaperId": "moon-cache-handle"
+      },
+      "resources": {
+        "samples": [{ "id": "host", "cpuUsage": 0.18, "memoryUsage": 0.34, "loadOne": 0.7 }]
+      },
+      "utilities": {
+        "trayItems": [{
+          "id": "network-manager",
+          "title": "Network",
+          "menu": { "id": "root", "label": "Network", "enabled": true, "children": [{ "id": "open", "label": "Open settings", "enabled": true, "children": [] }] }
+        }],
+        "clipboardEntries": [{ "id": "clip-1", "preview": "hello", "mimeType": "text/plain", "byteLength": 5 }],
+        "recording": { "status": "inactive" },
+        "idleInhibited": false,
+        "gameMode": false
+      }
+    }
+  }
+}

@@ -1508,6 +1508,11 @@ fn validate_command(command: &DesktopCommand) -> Result<(), ContractError> {
         },
         DesktopCommand::Launcher(LauncherCommand::Launch(request)) => {
             validate_desktop_launch_request(&serialize(request, "desktop launch request")?)?;
+            if request.desktop_id == ".desktop" {
+                return Err(ContractError::new(
+                    "launcher desktopId must have a non-empty basename",
+                ));
+            }
             if request.desktop_id.chars().any(char::is_control) {
                 return Err(ContractError::new(
                     "launcher desktopId must not contain control characters",

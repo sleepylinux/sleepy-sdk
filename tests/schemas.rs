@@ -366,6 +366,14 @@ fn desktop_v3_shared_corpus_separates_structural_and_semantic_validation() {
     empty_desktop_id["command"] = serde_json::json!({ "family": "launcher", "command": {
         "type": "launch", "data": { "schemaVersion": 2, "desktopId": "", "resources": [] }
     }});
+    let mut empty_basename_desktop_id = valid_request.clone();
+    empty_basename_desktop_id["command"] = serde_json::json!({ "family": "launcher", "command": {
+        "type": "launch", "data": { "schemaVersion": 2, "desktopId": ".desktop", "resources": [] }
+    }});
+    let mut single_character_basename = valid_request.clone();
+    single_character_basename["command"] = serde_json::json!({ "family": "launcher", "command": {
+        "type": "launch", "data": { "schemaVersion": 2, "desktopId": "a.desktop", "resources": [] }
+    }});
     let mut newline_traversal_desktop_id = valid_request.clone();
     newline_traversal_desktop_id["command"] = serde_json::json!({ "family": "launcher", "command": {
         "type": "launch", "data": { "schemaVersion": 2, "desktopId": "ok\n..evil.desktop", "resources": [] }
@@ -401,10 +409,20 @@ fn desktop_v3_shared_corpus_separates_structural_and_semantic_validation() {
             padded_values,
             true,
         ),
+        (
+            "single-character launcher desktop basename",
+            single_character_basename,
+            true,
+        ),
         ("launcher traversal", traversal, false),
         ("launcher desktop ID slash", slash_desktop_id, false),
         ("launcher desktop ID backslash", backslash_desktop_id, false),
         ("empty launcher desktop ID", empty_desktop_id, false),
+        (
+            "empty launcher desktop basename",
+            empty_basename_desktop_id,
+            false,
+        ),
         (
             "launcher desktop ID newline traversal",
             newline_traversal_desktop_id,

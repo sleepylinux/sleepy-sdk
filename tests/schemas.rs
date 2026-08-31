@@ -148,6 +148,100 @@ fn desktop_v3_schema_keeps_corrected_capabilities_independent_and_closed() {
 }
 
 #[test]
+fn desktop_v3_schema_and_rust_distinguish_absent_from_null_terminal_fields() {
+    let validator = schema("desktop-event-v3.schema.json");
+    let fixture = desktop_fixture("full-snapshot.json");
+    let mut null_cases = Vec::new();
+
+    let mut brightness_data = fixture.clone();
+    brightness_data["payload"]["data"]["system"]["brightness"] = serde_json::json!({
+        "status": "unsupported",
+        "data": null,
+        "diagnostic": { "message": "brightness is not supported" }
+    });
+    null_cases.push(("brightness data", brightness_data));
+
+    let mut brightness_diagnostic = fixture.clone();
+    brightness_diagnostic["payload"]["data"]["system"]["brightness"]["diagnostic"] =
+        serde_json::Value::Null;
+    null_cases.push(("brightness diagnostic", brightness_diagnostic));
+
+    let mut recording_data = fixture.clone();
+    recording_data["payload"]["data"]["utilities"]["recording"] = serde_json::json!({
+        "status": "unsupported",
+        "data": null,
+        "diagnostic": { "message": "recording is not supported" }
+    });
+    null_cases.push(("recording data", recording_data));
+
+    let mut recording_diagnostic = fixture.clone();
+    recording_diagnostic["payload"]["data"]["utilities"]["recording"]["diagnostic"] =
+        serde_json::Value::Null;
+    null_cases.push(("recording diagnostic", recording_diagnostic));
+
+    for utility in ["screenshot", "colorPicker"] {
+        let mut stateless_diagnostic = fixture.clone();
+        stateless_diagnostic["payload"]["data"]["utilities"][utility]["diagnostic"] =
+            serde_json::Value::Null;
+        null_cases.push((utility, stateless_diagnostic));
+    }
+
+    let mut result_diagnostic = fixture.clone();
+    result_diagnostic["generation"] = serde_json::json!(8);
+    result_diagnostic["cause"] = serde_json::json!({
+        "kind": "request",
+        "requestId": "018f3f4c-8af1-7f6b-bf42-1bd472868e66"
+    });
+    result_diagnostic["payload"] = serde_json::json!({
+        "type": "commandResult",
+        "data": {
+            "schemaVersion": 3,
+            "requestId": "018f3f4c-8af1-7f6b-bf42-1bd472868e66",
+            "generation": 8,
+            "status": "succeeded",
+            "diagnostic": null
+        }
+    });
+    null_cases.push(("result diagnostic", result_diagnostic));
+
+    for (name, document) in null_cases {
+        assert!(
+            !validator.is_valid(&document),
+            "schema accepted null {name}"
+        );
+        assert!(
+            sleepy_sdk::validate_desktop_envelope(&document.to_string()).is_err(),
+            "Rust accepted null {name}"
+        );
+    }
+
+    let mut absent_capability_data = fixture.clone();
+    absent_capability_data["payload"]["data"]["system"]["brightness"] = serde_json::json!({
+        "status": "unsupported",
+        "diagnostic": { "message": "brightness is not supported" }
+    });
+    let mut absent_utility_data = fixture.clone();
+    absent_utility_data["payload"]["data"]["utilities"]["recording"] = serde_json::json!({
+        "status": "unsupported",
+        "diagnostic": { "message": "recording is not supported" }
+    });
+    for (name, document) in [
+        (
+            "unavailable brightness without data",
+            absent_capability_data,
+        ),
+        ("unavailable recording without data", absent_utility_data),
+        ("available terminals without diagnostics", fixture),
+    ] {
+        assert!(validator.is_valid(&document), "schema rejected {name}");
+        assert!(
+            sleepy_sdk::validate_desktop_envelope(&document.to_string()).is_ok(),
+            "Rust rejected {name}"
+        );
+    }
+}
+
+#[test]
 fn desktop_v3_schema_action_capabilities_match_every_hyprland_command() {
     let event_validator = schema("desktop-event-v3.schema.json");
     let fixture = desktop_fixture("full-snapshot.json");

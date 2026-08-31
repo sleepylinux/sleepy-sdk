@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, fmt, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
 
@@ -125,9 +125,17 @@ pub struct DesktopSnapshot {
 )]
 pub struct DesktopCapability<T> {
     pub status: CapabilityAvailability,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub data: Option<T>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub diagnostic: Option<CapabilityFailure>,
 }
 
@@ -135,8 +143,54 @@ pub struct DesktopCapability<T> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ProducerAvailability {
     pub status: CapabilityAvailability,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub diagnostic: Option<CapabilityFailure>,
+}
+
+fn deserialize_optional_non_null<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    struct NonNullOptionVisitor<T>(PhantomData<T>);
+
+    impl<'de, T> serde::de::Visitor<'de> for NonNullOptionVisitor<T>
+    where
+        T: Deserialize<'de>,
+    {
+        type Value = Option<T>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+            formatter.write_str("a non-null value")
+        }
+
+        fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            T::deserialize(deserializer).map(Some)
+        }
+
+        fn visit_none<E>(self) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Err(E::custom("explicit null is not allowed"))
+        }
+
+        fn visit_unit<E>(self) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Err(E::custom("explicit null is not allowed"))
+        }
+    }
+
+    deserializer.deserialize_option(NonNullOptionVisitor(PhantomData))
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -800,7 +854,11 @@ pub struct DesktopResult {
     pub request_id: String,
     pub generation: u64,
     pub status: DesktopResultStatus,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub diagnostic: Option<CapabilityFailure>,
 }
 

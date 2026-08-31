@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use sleepy_sdk::{
     validate_desktop_envelope, validate_desktop_request, validate_desktop_result,
-    BrightnessSnapshot, CapabilityAvailability, DesktopCapability, DesktopEvent,
+    BrightnessSnapshot, CapabilityAvailability, DesktopCapability, DesktopEvent, DesktopResult,
     DesktopSystemUpdate, DesktopUtilitySnapshot, DesktopUtilityUpdate, HyprlandActionCapabilities,
     HyprlandCommand, NightLightSnapshot, ProducerAvailability, RecordingState, RecordingStatus,
     StableId, DESKTOP_WIRE_VERSION,
@@ -35,6 +35,91 @@ fn available<T>(data: T) -> DesktopCapability<T> {
         data: Some(data),
         diagnostic: None,
     }
+}
+
+#[test]
+fn explicit_null_never_aliases_absent_v3_terminal_fields() {
+    for (name, document) in [
+        (
+            "capability data",
+            serde_json::json!({
+                "status": "unsupported",
+                "data": null,
+                "diagnostic": { "message": "not supported" }
+            }),
+        ),
+        (
+            "capability diagnostic",
+            serde_json::json!({
+                "status": "available",
+                "data": { "level": 0.5 },
+                "diagnostic": null
+            }),
+        ),
+    ] {
+        assert!(
+            serde_json::from_value::<DesktopCapability<BrightnessSnapshot>>(document).is_err(),
+            "explicit null {name} must fail during deserialization"
+        );
+    }
+
+    assert!(
+        serde_json::from_value::<ProducerAvailability>(
+            serde_json::json!({ "status": "available", "diagnostic": null })
+        )
+        .is_err(),
+        "explicit null producer diagnostic must fail during deserialization"
+    );
+    assert!(
+        serde_json::from_value::<DesktopResult>(serde_json::json!({
+            "schemaVersion": 3,
+            "requestId": "018f3f4c-8af1-7f6b-bf42-1bd472868e66",
+            "generation": 8,
+            "status": "succeeded",
+            "diagnostic": null
+        }))
+        .is_err(),
+        "explicit null result diagnostic must fail during deserialization"
+    );
+
+    for (name, document, round_trip) in [
+        (
+            "available capability without diagnostic",
+            serde_json::json!({ "status": "available", "data": { "level": 0.5 } }),
+            serde_json::from_value::<DesktopCapability<BrightnessSnapshot>>,
+        ),
+        (
+            "unavailable capability without data",
+            serde_json::json!({
+                "status": "unsupported",
+                "diagnostic": { "message": "not supported" }
+            }),
+            serde_json::from_value::<DesktopCapability<BrightnessSnapshot>>,
+        ),
+    ] {
+        let parsed = round_trip(document.clone()).unwrap_or_else(|error| panic!("{name}: {error}"));
+        assert_eq!(serde_json::to_value(parsed).unwrap(), document, "{name}");
+    }
+
+    let producer = serde_json::json!({ "status": "available" });
+    assert_eq!(
+        serde_json::to_value(
+            serde_json::from_value::<ProducerAvailability>(producer.clone()).unwrap()
+        )
+        .unwrap(),
+        producer
+    );
+    let result = serde_json::json!({
+        "schemaVersion": 3,
+        "requestId": "018f3f4c-8af1-7f6b-bf42-1bd472868e66",
+        "generation": 8,
+        "status": "succeeded"
+    });
+    assert_eq!(
+        serde_json::to_value(serde_json::from_value::<DesktopResult>(result.clone()).unwrap())
+            .unwrap(),
+        result
+    );
 }
 
 #[test]

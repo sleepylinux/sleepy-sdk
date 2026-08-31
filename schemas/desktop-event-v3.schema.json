@@ -101,14 +101,15 @@
     "system": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["network", "bluetooth", "audio", "media", "battery", "display", "power", "osd", "lock"],
+      "required": ["network", "bluetooth", "audio", "media", "battery", "brightness", "nightLight", "power", "osd", "lock"],
       "properties": {
         "network": { "$ref": "#/$defs/networkCapability" },
         "bluetooth": { "$ref": "#/$defs/bluetoothCapability" },
         "audio": { "$ref": "#/$defs/audioCapability" },
         "media": { "$ref": "#/$defs/mediaCapability" },
         "battery": { "$ref": "#/$defs/batteryCapability" },
-        "display": { "$ref": "#/$defs/displayCapability" },
+        "brightness": { "$ref": "#/$defs/brightnessCapability" },
+        "nightLight": { "$ref": "#/$defs/nightLightCapability" },
         "power": { "$ref": "#/$defs/powerCapability" },
         "osd": { "$ref": "#/$defs/osdCapability" },
         "lock": { "$ref": "#/$defs/lockCapability" }
@@ -256,23 +257,35 @@
         "secondsRemaining": { "type": "integer", "minimum": 0, "maximum": 18446744073709551615 }
       }
     },
-    "displayCapability": {
+    "brightnessCapability": {
       "oneOf": [
         {
           "type": "object", "additionalProperties": false,
           "required": ["status", "data"],
-          "properties": { "status": { "const": "available" }, "data": { "$ref": "#/$defs/display" } }
+          "properties": { "status": { "const": "available" }, "data": { "$ref": "#/$defs/brightness" } }
         },
         { "$ref": "#/$defs/unavailableCapability" }
       ]
     },
-    "display": {
+    "brightness": {
       "type": "object", "additionalProperties": false,
-      "required": ["nightLightEnabled"],
-      "properties": {
-        "brightness": { "$ref": "#/$defs/normalized" },
-        "nightLightEnabled": { "type": "boolean" }
-      }
+      "required": ["level"],
+      "properties": { "level": { "$ref": "#/$defs/normalized" } }
+    },
+    "nightLightCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": { "status": { "const": "available" }, "data": { "$ref": "#/$defs/nightLight" } }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "nightLight": {
+      "type": "object", "additionalProperties": false,
+      "required": ["enabled"],
+      "properties": { "enabled": { "type": "boolean" } }
     },
     "powerCapability": {
       "oneOf": [
@@ -386,11 +399,28 @@
     },
     "hyprland": {
       "type": "object", "additionalProperties": false,
-      "required": ["monitors", "workspaces", "windows"],
+      "required": ["actionCapabilities", "monitors", "workspaces", "windows"],
       "properties": {
+        "actionCapabilities": { "$ref": "#/$defs/hyprlandActionCapabilities" },
         "monitors": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/monitor" } },
         "workspaces": { "$ref": "#/$defs/workspaceCollection" },
         "windows": { "type": "array", "maxItems": 16384, "items": { "$ref": "#/$defs/window" } }
+      }
+    },
+    "hyprlandActionCapabilities": {
+      "type": "object", "additionalProperties": false,
+      "required": ["focusWindow", "moveWindowToWorkspace", "closeWindow", "focusWorkspace", "moveWorkspaceToMonitor", "toggleFullscreen", "toggleFloating", "togglePinned", "toggleGroup", "exit"],
+      "properties": {
+        "focusWindow": { "type": "boolean" },
+        "moveWindowToWorkspace": { "type": "boolean" },
+        "closeWindow": { "type": "boolean" },
+        "focusWorkspace": { "type": "boolean" },
+        "moveWorkspaceToMonitor": { "type": "boolean" },
+        "toggleFullscreen": { "type": "boolean" },
+        "toggleFloating": { "type": "boolean" },
+        "togglePinned": { "type": "boolean" },
+        "toggleGroup": { "type": "boolean" },
+        "exit": { "type": "boolean" }
       }
     },
     "monitor": {
@@ -608,13 +638,62 @@
     },
     "utilities": {
       "type": "object", "additionalProperties": false,
-      "required": ["availability", "trayItems", "clipboardEntries", "recording", "idleInhibited", "gameMode"],
+      "required": ["trayItems", "clipboardEntries", "recording", "idleInhibited", "gameMode", "screenshot", "colorPicker"],
       "properties": {
-        "availability": { "$ref": "#/$defs/producerAvailability" },
-        "trayItems": { "type": "array", "maxItems": 1024, "items": { "$ref": "#/$defs/trayItem" } },
-        "clipboardEntries": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/clipboardEntry" } },
-        "recording": { "$ref": "#/$defs/recording" }, "idleInhibited": { "type": "boolean" }, "gameMode": { "type": "boolean" }
+        "trayItems": { "$ref": "#/$defs/trayItemsCapability" },
+        "clipboardEntries": { "$ref": "#/$defs/clipboardEntriesCapability" },
+        "recording": { "$ref": "#/$defs/recordingCapability" },
+        "idleInhibited": { "$ref": "#/$defs/booleanCapability" },
+        "gameMode": { "$ref": "#/$defs/booleanCapability" },
+        "screenshot": { "$ref": "#/$defs/producerAvailability" },
+        "colorPicker": { "$ref": "#/$defs/producerAvailability" }
       }
+    },
+    "trayItemsCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": {
+            "status": { "const": "available" },
+            "data": { "type": "array", "maxItems": 1024, "items": { "$ref": "#/$defs/trayItem" } }
+          }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "clipboardEntriesCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": {
+            "status": { "const": "available" },
+            "data": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/clipboardEntry" } }
+          }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "recordingCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": { "status": { "const": "available" }, "data": { "$ref": "#/$defs/recording" } }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "booleanCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": { "status": { "const": "available" }, "data": { "type": "boolean" } }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
     },
     "trayItem": {
       "type": "object", "additionalProperties": false,
@@ -679,7 +758,8 @@
         { "$ref": "#/$defs/audioUpdate" },
         { "$ref": "#/$defs/mediaUpdate" },
         { "$ref": "#/$defs/batteryUpdate" },
-        { "$ref": "#/$defs/displayUpdate" },
+        { "$ref": "#/$defs/brightnessUpdate" },
+        { "$ref": "#/$defs/nightLightUpdate" },
         { "$ref": "#/$defs/powerUpdate" },
         { "$ref": "#/$defs/osdUpdate" },
         { "$ref": "#/$defs/lockUpdate" }
@@ -705,9 +785,13 @@
       "type": "object", "additionalProperties": false, "required": ["domain", "data"],
       "properties": { "domain": { "const": "battery" }, "data": { "$ref": "#/$defs/batteryCapability" } }
     },
-    "displayUpdate": {
+    "brightnessUpdate": {
       "type": "object", "additionalProperties": false, "required": ["domain", "data"],
-      "properties": { "domain": { "const": "display" }, "data": { "$ref": "#/$defs/displayCapability" } }
+      "properties": { "domain": { "const": "brightness" }, "data": { "$ref": "#/$defs/brightnessCapability" } }
+    },
+    "nightLightUpdate": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+      "properties": { "domain": { "const": "nightLight" }, "data": { "$ref": "#/$defs/nightLightCapability" } }
     },
     "powerUpdate": {
       "type": "object", "additionalProperties": false, "required": ["domain", "data"],
@@ -773,7 +857,39 @@
     },
     "utilitiesDomainUpdate": {
       "type": "object", "additionalProperties": false, "required": ["topic", "update"],
-      "properties": { "topic": { "const": "utilities" }, "update": { "$ref": "#/$defs/utilities" } }
+      "properties": { "topic": { "const": "utilities" }, "update": { "$ref": "#/$defs/utilityUpdate" } }
+    },
+    "utilityUpdate": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+          "properties": { "domain": { "const": "trayItems" }, "data": { "$ref": "#/$defs/trayItemsCapability" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+          "properties": { "domain": { "const": "clipboardEntries" }, "data": { "$ref": "#/$defs/clipboardEntriesCapability" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+          "properties": { "domain": { "const": "recording" }, "data": { "$ref": "#/$defs/recordingCapability" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+          "properties": { "domain": { "const": "idleInhibited" }, "data": { "$ref": "#/$defs/booleanCapability" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+          "properties": { "domain": { "const": "gameMode" }, "data": { "$ref": "#/$defs/booleanCapability" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+          "properties": { "domain": { "const": "screenshot" }, "data": { "$ref": "#/$defs/producerAvailability" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+          "properties": { "domain": { "const": "colorPicker" }, "data": { "$ref": "#/$defs/producerAvailability" } }
+        }
+      ]
     },
     "result": {
       "oneOf": [

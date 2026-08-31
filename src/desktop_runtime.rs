@@ -66,7 +66,7 @@ pub enum DesktopDomainUpdate {
     Weather(DesktopWeatherSnapshot),
     Appearance(DesktopAppearanceSnapshot),
     Resources(DesktopResourceSnapshot),
-    Utilities(DesktopUtilitySnapshot),
+    Utilities(DesktopUtilityUpdate),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -82,7 +82,8 @@ pub enum DesktopSystemUpdate {
     Audio(DesktopCapability<AudioSnapshot>),
     Media(DesktopCapability<MediaSnapshot>),
     Battery(DesktopCapability<BatterySnapshot>),
-    Display(DesktopCapability<DisplaySnapshot>),
+    Brightness(DesktopCapability<BrightnessSnapshot>),
+    NightLight(DesktopCapability<NightLightSnapshot>),
     Power(DesktopCapability<DesktopPowerSnapshot>),
     Osd(DesktopCapability<DesktopOsdSnapshot>),
     Lock(DesktopCapability<LockState>),
@@ -146,7 +147,8 @@ pub struct DesktopSystemSnapshot {
     pub audio: DesktopCapability<AudioSnapshot>,
     pub media: DesktopCapability<MediaSnapshot>,
     pub battery: DesktopCapability<BatterySnapshot>,
-    pub display: DesktopCapability<DisplaySnapshot>,
+    pub brightness: DesktopCapability<BrightnessSnapshot>,
+    pub night_light: DesktopCapability<NightLightSnapshot>,
     pub power: DesktopCapability<DesktopPowerSnapshot>,
     pub osd: DesktopCapability<DesktopOsdSnapshot>,
     pub lock: DesktopCapability<LockState>,
@@ -267,10 +269,14 @@ pub struct BatterySnapshot {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct DisplaySnapshot {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub brightness: Option<f64>,
-    pub night_light_enabled: bool,
+pub struct BrightnessSnapshot {
+    pub level: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct NightLightSnapshot {
+    pub enabled: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -303,9 +309,42 @@ pub struct DesktopCompositorSnapshot {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct HyprlandSnapshot {
+    pub action_capabilities: HyprlandActionCapabilities,
     pub monitors: Vec<Monitor>,
     pub workspaces: Vec<Workspace>,
     pub windows: Vec<Window>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct HyprlandActionCapabilities {
+    pub focus_window: bool,
+    pub move_window_to_workspace: bool,
+    pub close_window: bool,
+    pub focus_workspace: bool,
+    pub move_workspace_to_monitor: bool,
+    pub toggle_fullscreen: bool,
+    pub toggle_floating: bool,
+    pub toggle_pinned: bool,
+    pub toggle_group: bool,
+    pub exit: bool,
+}
+
+impl HyprlandActionCapabilities {
+    pub fn supports(&self, command: &HyprlandCommand) -> bool {
+        match command {
+            HyprlandCommand::FocusWindow { .. } => self.focus_window,
+            HyprlandCommand::MoveWindowToWorkspace { .. } => self.move_window_to_workspace,
+            HyprlandCommand::CloseWindow { .. } => self.close_window,
+            HyprlandCommand::FocusWorkspace { .. } => self.focus_workspace,
+            HyprlandCommand::MoveWorkspaceToMonitor { .. } => self.move_workspace_to_monitor,
+            HyprlandCommand::ToggleFullscreen { .. } => self.toggle_fullscreen,
+            HyprlandCommand::ToggleFloating { .. } => self.toggle_floating,
+            HyprlandCommand::TogglePinned { .. } => self.toggle_pinned,
+            HyprlandCommand::ToggleGroup { .. } => self.toggle_group,
+            HyprlandCommand::Exit => self.exit,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -403,15 +442,33 @@ pub struct ResourceSample {
     pub load_one: f64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DesktopUtilitySnapshot {
-    pub availability: ProducerAvailability,
-    pub tray_items: Vec<TrayItem>,
-    pub clipboard_entries: Vec<ClipboardEntry>,
-    pub recording: RecordingState,
-    pub idle_inhibited: bool,
-    pub game_mode: bool,
+    pub tray_items: DesktopCapability<Vec<TrayItem>>,
+    pub clipboard_entries: DesktopCapability<Vec<ClipboardEntry>>,
+    pub recording: DesktopCapability<RecordingState>,
+    pub idle_inhibited: DesktopCapability<bool>,
+    pub game_mode: DesktopCapability<bool>,
+    pub screenshot: ProducerAvailability,
+    pub color_picker: ProducerAvailability,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(
+    tag = "domain",
+    content = "data",
+    rename_all = "camelCase",
+    deny_unknown_fields
+)]
+pub enum DesktopUtilityUpdate {
+    TrayItems(DesktopCapability<Vec<TrayItem>>),
+    ClipboardEntries(DesktopCapability<Vec<ClipboardEntry>>),
+    Recording(DesktopCapability<RecordingState>),
+    IdleInhibited(DesktopCapability<bool>),
+    GameMode(DesktopCapability<bool>),
+    Screenshot(ProducerAvailability),
+    ColorPicker(ProducerAvailability),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -882,12 +939,10 @@ fn validate_snapshot(snapshot: &DesktopSnapshot) -> Result<(), ContractError> {
     validate_capability(&snapshot.system.battery, "battery", |battery| {
         require_normalized(battery.level, "battery level")
     })?;
-    validate_capability(&snapshot.system.display, "display", |display| {
-        if let Some(brightness) = display.brightness {
-            require_normalized(brightness, "display brightness")?;
-        }
-        Ok(())
+    validate_capability(&snapshot.system.brightness, "brightness", |brightness| {
+        require_normalized(brightness.level, "brightness level")
     })?;
+    validate_capability(&snapshot.system.night_light, "night light", |_| Ok(()))?;
     validate_capability(&snapshot.system.power, "power", |power| {
         if power.available_profiles.is_empty() {
             return Err(ContractError::new(
@@ -1100,7 +1155,7 @@ fn validate_domain_update(update: &DesktopDomainUpdate) -> Result<(), ContractEr
             }
             Ok(())
         }
-        DesktopDomainUpdate::Utilities(snapshot) => validate_utilities_snapshot(snapshot),
+        DesktopDomainUpdate::Utilities(update) => validate_utility_update(update),
     }
 }
 
@@ -1184,13 +1239,13 @@ fn validate_system_update(update: &DesktopSystemUpdate) -> Result<(), ContractEr
                 require_normalized(battery.level, "battery level")
             })
         }
-        DesktopSystemUpdate::Display(capability) => {
-            validate_capability(capability, "display", |display| {
-                if let Some(brightness) = display.brightness {
-                    require_normalized(brightness, "display brightness")?;
-                }
-                Ok(())
+        DesktopSystemUpdate::Brightness(capability) => {
+            validate_capability(capability, "brightness", |brightness| {
+                require_normalized(brightness.level, "brightness level")
             })
+        }
+        DesktopSystemUpdate::NightLight(capability) => {
+            validate_capability(capability, "night light", |_| Ok(()))
         }
         DesktopSystemUpdate::Power(capability) => {
             validate_capability(capability, "power", |power| {
@@ -1378,12 +1433,53 @@ fn validate_weather_v3(snapshot: &WeatherSnapshot) -> Result<(), ContractError> 
 }
 
 fn validate_utilities_snapshot(snapshot: &DesktopUtilitySnapshot) -> Result<(), ContractError> {
-    validate_producer_availability(&snapshot.availability, "utilities")?;
-    validate_unique_ids(&snapshot.tray_items, MAX_TRAY_ITEMS, "tray item", |item| {
-        &item.id
+    validate_capability(&snapshot.tray_items, "tray items", |items| {
+        validate_tray_items(items)
     })?;
+    validate_capability(
+        &snapshot.clipboard_entries,
+        "clipboard entries",
+        |entries| validate_clipboard_entries(entries),
+    )?;
+    validate_capability(&snapshot.recording, "recording", validate_recording_state)?;
+    validate_capability(&snapshot.idle_inhibited, "idle inhibit", |_| Ok(()))?;
+    validate_capability(&snapshot.game_mode, "GameMode", |_| Ok(()))?;
+    validate_producer_availability(&snapshot.screenshot, "screenshot")?;
+    validate_producer_availability(&snapshot.color_picker, "color picker")
+}
+
+fn validate_utility_update(update: &DesktopUtilityUpdate) -> Result<(), ContractError> {
+    match update {
+        DesktopUtilityUpdate::TrayItems(capability) => {
+            validate_capability(capability, "tray items", |items| validate_tray_items(items))
+        }
+        DesktopUtilityUpdate::ClipboardEntries(capability) => {
+            validate_capability(capability, "clipboard entries", |entries| {
+                validate_clipboard_entries(entries)
+            })
+        }
+        DesktopUtilityUpdate::Recording(capability) => {
+            validate_capability(capability, "recording", validate_recording_state)
+        }
+        DesktopUtilityUpdate::IdleInhibited(capability) => {
+            validate_capability(capability, "idle inhibit", |_| Ok(()))
+        }
+        DesktopUtilityUpdate::GameMode(capability) => {
+            validate_capability(capability, "GameMode", |_| Ok(()))
+        }
+        DesktopUtilityUpdate::Screenshot(availability) => {
+            validate_producer_availability(availability, "screenshot")
+        }
+        DesktopUtilityUpdate::ColorPicker(availability) => {
+            validate_producer_availability(availability, "color picker")
+        }
+    }
+}
+
+fn validate_tray_items(items: &[TrayItem]) -> Result<(), ContractError> {
+    validate_unique_ids(items, MAX_TRAY_ITEMS, "tray item", |item| &item.id)?;
     let mut menu_nodes = 0usize;
-    for item in &snapshot.tray_items {
+    for item in items {
         require_non_empty(&item.title, "tray item title")?;
         let mut menu_ids = BTreeSet::new();
         let mut pending = vec![&item.menu];
@@ -1402,16 +1498,17 @@ fn validate_utilities_snapshot(snapshot: &DesktopUtilitySnapshot) -> Result<(), 
             pending.extend(&node.children);
         }
     }
-    validate_unique_ids(
-        &snapshot.clipboard_entries,
-        MAX_CLIPBOARD_ENTRIES,
-        "clipboard entry",
-        |item| &item.id,
-    )?;
-    for entry in &snapshot.clipboard_entries {
+    Ok(())
+}
+
+fn validate_clipboard_entries(entries: &[ClipboardEntry]) -> Result<(), ContractError> {
+    validate_unique_ids(entries, MAX_CLIPBOARD_ENTRIES, "clipboard entry", |item| {
+        &item.id
+    })?;
+    for entry in entries {
         require_non_empty(&entry.mime_type, "clipboard entry mimeType")?;
     }
-    validate_recording_state(&snapshot.recording)
+    Ok(())
 }
 
 fn validate_producer_availability(

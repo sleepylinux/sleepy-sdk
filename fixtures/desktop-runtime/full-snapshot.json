@@ -39,7 +39,8 @@
           }
         },
         "battery": { "status": "available", "data": { "level": 0.72, "charging": false, "secondsRemaining": 7200 } },
-        "display": { "status": "available", "data": { "brightness": 0.65, "nightLightEnabled": false } },
+        "brightness": { "status": "available", "data": { "level": 0.65 } },
+        "nightLight": { "status": "available", "data": { "enabled": false } },
         "power": { "status": "available", "data": { "activeProfile": "balanced", "availableProfiles": ["power-saver", "balanced", "performance"] } },
         "osd": {
           "status": "available",
@@ -54,6 +55,18 @@
         "hyprland": {
           "status": "available",
           "data": {
+            "actionCapabilities": {
+              "focusWindow": true,
+              "moveWindowToWorkspace": true,
+              "closeWindow": true,
+              "focusWorkspace": true,
+              "moveWorkspaceToMonitor": true,
+              "toggleFullscreen": false,
+              "toggleFloating": true,
+              "togglePinned": true,
+              "toggleGroup": false,
+              "exit": true
+            },
             "monitors": [{ "id": "DP-1", "name": "DP-1", "width": 2560, "height": 1440, "scale": 1.0, "focused": true }],
             "workspaces": [{ "id": "1", "name": "1", "monitorId": "DP-1", "focused": true }],
             "windows": [{ "id": "0x1234", "title": "Terminal", "applicationId": "com.mitchellh.ghostty", "workspaceId": "1", "focused": true, "fullscreen": false, "floating": false, "pinned": false, "grouped": false }]
@@ -112,16 +125,23 @@
         "samples": [{ "id": "host", "cpuUsage": 0.18, "memoryUsage": 0.34, "loadOne": 0.7 }]
       },
       "utilities": {
-        "availability": { "status": "available" },
-        "trayItems": [{
-          "id": "network-manager",
-          "title": "Network",
-          "menu": { "id": "root", "label": "Network", "enabled": true, "children": [{ "id": "open", "label": "Open settings", "enabled": true, "children": [] }] }
-        }],
-        "clipboardEntries": [{ "id": "clip-1", "preview": "hello", "mimeType": "text/plain", "byteLength": 5 }],
-        "recording": { "status": "inactive" },
-        "idleInhibited": false,
-        "gameMode": false
+        "trayItems": {
+          "status": "available",
+          "data": [{
+            "id": "network-manager",
+            "title": "Network",
+            "menu": { "id": "root", "label": "Network", "enabled": true, "children": [{ "id": "open", "label": "Open settings", "enabled": true, "children": [] }] }
+          }]
+        },
+        "clipboardEntries": {
+          "status": "available",
+          "data": [{ "id": "clip-1", "preview": "hello", "mimeType": "text/plain", "byteLength": 5 }]
+        },
+        "recording": { "status": "available", "data": { "status": "inactive" } },
+        "idleInhibited": { "status": "available", "data": false },
+        "gameMode": { "status": "available", "data": false },
+        "screenshot": { "status": "available" },
+        "colorPicker": { "status": "available" }
       }
     }
   }

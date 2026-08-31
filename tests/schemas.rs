@@ -41,6 +41,156 @@ fn desktop_v3_schemas_accept_the_canonical_fixtures_and_reject_unknown_fields() 
 }
 
 #[test]
+fn desktop_v3_schema_keeps_corrected_capabilities_independent_and_closed() {
+    let validator = schema("desktop-event-v3.schema.json");
+    let fixture = desktop_fixture("full-snapshot.json");
+    let terminal_paths = [
+        "/payload/data/system/brightness",
+        "/payload/data/system/nightLight",
+        "/payload/data/utilities/trayItems",
+        "/payload/data/utilities/clipboardEntries",
+        "/payload/data/utilities/recording",
+        "/payload/data/utilities/idleInhibited",
+        "/payload/data/utilities/gameMode",
+        "/payload/data/utilities/screenshot",
+        "/payload/data/utilities/colorPicker",
+    ];
+
+    for path in terminal_paths {
+        let mut degraded = fixture.clone();
+        *degraded.pointer_mut(path).unwrap() = serde_json::json!({
+            "status": "unsupported",
+            "diagnostic": { "message": "not supported by this producer" }
+        });
+        assert!(
+            validator.is_valid(&degraded),
+            "schema: {path} degrades alone"
+        );
+        assert!(sleepy_sdk::validate_desktop_envelope(&degraded.to_string()).is_ok());
+
+        let mut missing = fixture.clone();
+        let (parent, field) = path.rsplit_once('/').unwrap();
+        missing
+            .pointer_mut(parent)
+            .unwrap()
+            .as_object_mut()
+            .unwrap()
+            .remove(field);
+        assert!(!validator.is_valid(&missing), "schema: missing {path}");
+        assert!(sleepy_sdk::validate_desktop_envelope(&missing.to_string()).is_err());
+    }
+
+    for path in [
+        "/payload/data/system/brightness/data/level",
+        "/payload/data/system/nightLight/data/enabled",
+        "/payload/data/utilities/trayItems/data",
+        "/payload/data/utilities/clipboardEntries/data",
+        "/payload/data/utilities/recording/data",
+        "/payload/data/utilities/idleInhibited/data",
+        "/payload/data/utilities/gameMode/data",
+        "/payload/data/utilities/screenshot/status",
+        "/payload/data/utilities/colorPicker/status",
+    ] {
+        let mut missing = fixture.clone();
+        let (parent, field) = path.rsplit_once('/').unwrap();
+        missing
+            .pointer_mut(parent)
+            .unwrap()
+            .as_object_mut()
+            .unwrap()
+            .remove(field);
+        assert!(!validator.is_valid(&missing), "schema: missing {path}");
+        assert!(sleepy_sdk::validate_desktop_envelope(&missing.to_string()).is_err());
+    }
+
+    for path in [
+        "/payload/data/system/brightness/data",
+        "/payload/data/system/nightLight/data",
+        "/payload/data/utilities/trayItems",
+        "/payload/data/utilities/screenshot",
+    ] {
+        let mut unknown = fixture.clone();
+        unknown
+            .pointer_mut(path)
+            .unwrap()
+            .as_object_mut()
+            .unwrap()
+            .insert("unknownField".into(), serde_json::json!(true));
+        assert!(
+            !validator.is_valid(&unknown),
+            "schema: unknown field at {path}"
+        );
+        assert!(sleepy_sdk::validate_desktop_envelope(&unknown.to_string()).is_err());
+    }
+
+    for (parent, alias, value) in [
+        (
+            "/payload/data/system",
+            "display",
+            serde_json::json!({ "status": "available", "data": { "brightness": 0.5, "nightLightEnabled": false } }),
+        ),
+        (
+            "/payload/data/utilities",
+            "availability",
+            serde_json::json!({ "status": "available" }),
+        ),
+    ] {
+        let mut aggregate_alias = fixture.clone();
+        aggregate_alias
+            .pointer_mut(parent)
+            .unwrap()
+            .as_object_mut()
+            .unwrap()
+            .insert(alias.into(), value);
+        assert!(!validator.is_valid(&aggregate_alias));
+        assert!(sleepy_sdk::validate_desktop_envelope(&aggregate_alias.to_string()).is_err());
+    }
+}
+
+#[test]
+fn desktop_v3_schema_action_capabilities_match_every_hyprland_command() {
+    let event_validator = schema("desktop-event-v3.schema.json");
+    let fixture = desktop_fixture("full-snapshot.json");
+    let actions = [
+        "focusWindow",
+        "moveWindowToWorkspace",
+        "closeWindow",
+        "focusWorkspace",
+        "moveWorkspaceToMonitor",
+        "toggleFullscreen",
+        "toggleFloating",
+        "togglePinned",
+        "toggleGroup",
+        "exit",
+    ];
+
+    let capabilities = fixture
+        .pointer("/payload/data/compositor/hyprland/data/actionCapabilities")
+        .unwrap()
+        .as_object()
+        .unwrap();
+    assert_eq!(capabilities.len(), actions.len());
+    for action in actions {
+        assert!(capabilities[action].is_boolean());
+        let mut missing = fixture.clone();
+        missing
+            .pointer_mut("/payload/data/compositor/hyprland/data/actionCapabilities")
+            .unwrap()
+            .as_object_mut()
+            .unwrap()
+            .remove(action);
+        assert!(!event_validator.is_valid(&missing), "missing {action}");
+        assert!(sleepy_sdk::validate_desktop_envelope(&missing.to_string()).is_err());
+    }
+
+    let mut unknown = fixture;
+    unknown["payload"]["data"]["compositor"]["hyprland"]["data"]["actionCapabilities"]
+        ["unknownAction"] = serde_json::json!(true);
+    assert!(!event_validator.is_valid(&unknown));
+    assert!(sleepy_sdk::validate_desktop_envelope(&unknown.to_string()).is_err());
+}
+
+#[test]
 fn desktop_v3_schema_and_rust_require_boolean_group_membership_only() {
     let validator = schema("desktop-event-v3.schema.json");
     let ungrouped = desktop_fixture("full-snapshot.json");
@@ -271,7 +421,11 @@ fn desktop_v3_schemas_cover_all_topic_updates_and_required_producer_actions() {
         ),
         (
             "system",
-            serde_json::json!({ "domain": "display", "data": data["system"]["display"] }),
+            serde_json::json!({ "domain": "brightness", "data": data["system"]["brightness"] }),
+        ),
+        (
+            "system",
+            serde_json::json!({ "domain": "nightLight", "data": data["system"]["nightLight"] }),
         ),
         (
             "system",
@@ -307,7 +461,34 @@ fn desktop_v3_schemas_cover_all_topic_updates_and_required_producer_actions() {
         ("weather", data["weather"].clone()),
         ("appearance", data["appearance"].clone()),
         ("resources", data["resources"].clone()),
-        ("utilities", data["utilities"].clone()),
+        (
+            "utilities",
+            serde_json::json!({ "domain": "trayItems", "data": data["utilities"]["trayItems"] }),
+        ),
+        (
+            "utilities",
+            serde_json::json!({ "domain": "clipboardEntries", "data": data["utilities"]["clipboardEntries"] }),
+        ),
+        (
+            "utilities",
+            serde_json::json!({ "domain": "recording", "data": data["utilities"]["recording"] }),
+        ),
+        (
+            "utilities",
+            serde_json::json!({ "domain": "idleInhibited", "data": data["utilities"]["idleInhibited"] }),
+        ),
+        (
+            "utilities",
+            serde_json::json!({ "domain": "gameMode", "data": data["utilities"]["gameMode"] }),
+        ),
+        (
+            "utilities",
+            serde_json::json!({ "domain": "screenshot", "data": data["utilities"]["screenshot"] }),
+        ),
+        (
+            "utilities",
+            serde_json::json!({ "domain": "colorPicker", "data": data["utilities"]["colorPicker"] }),
+        ),
     ];
     for (index, (topic, update)) in updates.into_iter().enumerate() {
         let event = serde_json::json!({
@@ -323,6 +504,30 @@ fn desktop_v3_schemas_cover_all_topic_updates_and_required_producer_actions() {
             "event schema must accept {topic} update"
         );
         assert!(sleepy_sdk::validate_desktop_envelope(&event.to_string()).is_ok());
+    }
+
+    for (index, invalid_update) in [
+        serde_json::json!({ "domain": "utilities", "data": data["utilities"] }),
+        serde_json::json!({ "domain": "unknownUtility", "data": { "status": "available" } }),
+        serde_json::json!({ "domain": "recording" }),
+        serde_json::json!({ "domain": "screenshot", "data": data["utilities"]["screenshot"], "unknown": true }),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let event = serde_json::json!({
+            "schemaVersion": 3,
+            "generation": 8,
+            "eventId": format!("018f3f4c-8af1-7f6b-bf42-1bd4728693{index:02x}"),
+            "emittedAt": "2026-08-30T12:00:01Z",
+            "cause": { "kind": "external" },
+            "payload": {
+                "type": "domainUpdate",
+                "data": { "topic": "utilities", "update": invalid_update }
+            }
+        });
+        assert!(!event_validator.is_valid(&event));
+        assert!(sleepy_sdk::validate_desktop_envelope(&event.to_string()).is_err());
     }
 
     let command_validator = schema("desktop-command-v3.schema.json");
@@ -600,7 +805,7 @@ fn desktop_v3_shared_corpus_separates_structural_and_semantic_validation() {
         })
         .collect();
     let mut aggregate_menu_overflow = desktop_fixture("full-snapshot.json");
-    aggregate_menu_overflow["payload"]["data"]["utilities"]["trayItems"] = serde_json::json!([
+    aggregate_menu_overflow["payload"]["data"]["utilities"]["trayItems"]["data"] = serde_json::json!([
         {
             "id": "tray-a",
             "title": "A",

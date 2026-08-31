@@ -1,6 +1,11 @@
+use std::collections::BTreeSet;
+
 use sleepy_sdk::{
-    validate_desktop_envelope, validate_desktop_request, validate_desktop_result, DesktopEvent,
-    DESKTOP_WIRE_VERSION,
+    validate_desktop_envelope, validate_desktop_request, validate_desktop_result,
+    BrightnessSnapshot, CapabilityAvailability, DesktopCapability, DesktopEvent,
+    DesktopSystemUpdate, DesktopUtilitySnapshot, DesktopUtilityUpdate, HyprlandActionCapabilities,
+    HyprlandCommand, NightLightSnapshot, ProducerAvailability, RecordingState, RecordingStatus,
+    StableId, DESKTOP_WIRE_VERSION,
 };
 
 const SNAPSHOT: &str = include_str!("../fixtures/desktop-runtime/full-snapshot.json");
@@ -8,6 +13,28 @@ const COMMAND: &str = include_str!("../fixtures/desktop-runtime/command.json");
 
 fn snapshot_value() -> serde_json::Value {
     serde_json::from_str(SNAPSHOT).expect("snapshot fixture must be JSON")
+}
+
+fn domain_update(topic: &str, update: serde_json::Value, event_suffix: u8) -> serde_json::Value {
+    serde_json::json!({
+        "schemaVersion": 3,
+        "generation": 8,
+        "eventId": format!("018f3f4c-8af1-7f6b-bf42-1bd472868e{event_suffix:02x}"),
+        "emittedAt": "2026-08-30T12:00:01Z",
+        "cause": { "kind": "external" },
+        "payload": {
+            "type": "domainUpdate",
+            "data": { "topic": topic, "update": update }
+        }
+    })
+}
+
+fn available<T>(data: T) -> DesktopCapability<T> {
+    DesktopCapability {
+        status: CapabilityAvailability::Available,
+        data: Some(data),
+        diagnostic: None,
+    }
 }
 
 #[test]
@@ -33,6 +60,407 @@ fn reconnect_fixture_round_trips_without_losing_any_desktop_topic() {
             "system",
             "utilities",
             "weather",
+        ]
+    );
+}
+
+#[test]
+fn display_subproducers_degrade_independently_and_reject_aggregate_aliases() {
+    for (failed, sibling) in [("brightness", "nightLight"), ("nightLight", "brightness")] {
+        let mut candidate = snapshot_value();
+        candidate["payload"]["data"]["system"][failed] = serde_json::json!({
+            "status": "unsupported",
+            "diagnostic": { "message": format!("{failed} is not supported") }
+        });
+        assert!(
+            validate_desktop_envelope(&candidate.to_string()).is_ok(),
+            "{failed} failure must not hide available {sibling} state"
+        );
+        assert_eq!(
+            candidate["payload"]["data"]["system"][sibling]["status"],
+            "available"
+        );
+    }
+
+    for required in ["brightness", "nightLight"] {
+        let mut missing = snapshot_value();
+        missing["payload"]["data"]["system"]
+            .as_object_mut()
+            .unwrap()
+            .remove(required);
+        assert!(
+            validate_desktop_envelope(&missing.to_string()).is_err(),
+            "missing {required} capability must fail closed"
+        );
+    }
+
+    let mut aggregate_alias = snapshot_value();
+    aggregate_alias["payload"]["data"]["system"]["display"] = serde_json::json!({
+        "status": "available",
+        "data": { "brightness": 0.65, "nightLightEnabled": false }
+    });
+    assert!(
+        validate_desktop_envelope(&aggregate_alias.to_string()).is_err(),
+        "the flawed aggregate display alias must not survive in v3"
+    );
+}
+
+#[test]
+fn every_utility_subproducer_has_independent_terminal_availability() {
+    let stateful = [
+        "trayItems",
+        "clipboardEntries",
+        "recording",
+        "idleInhibited",
+        "gameMode",
+    ];
+    let stateless = ["screenshot", "colorPicker"];
+
+    for failed in stateful.into_iter().chain(stateless) {
+        let mut candidate = snapshot_value();
+        candidate["payload"]["data"]["utilities"][failed] = serde_json::json!({
+            "status": "unsupported",
+            "diagnostic": { "message": format!("{failed} is not supported") }
+        });
+        assert!(
+            validate_desktop_envelope(&candidate.to_string()).is_ok(),
+            "{failed} must terminate independently without hiding its siblings"
+        );
+        assert_eq!(
+            candidate["payload"]["data"]["utilities"]["recording"]["status"],
+            if failed == "recording" {
+                "unsupported"
+            } else {
+                "available"
+            }
+        );
+    }
+
+    for required in stateful.into_iter().chain(stateless) {
+        let mut missing = snapshot_value();
+        missing["payload"]["data"]["utilities"]
+            .as_object_mut()
+            .unwrap()
+            .remove(required);
+        assert!(
+            validate_desktop_envelope(&missing.to_string()).is_err(),
+            "missing {required} terminal state must fail closed"
+        );
+    }
+
+    let mut aggregate_alias = snapshot_value();
+    aggregate_alias["payload"]["data"]["utilities"]["availability"] =
+        serde_json::json!({ "status": "available" });
+    assert!(
+        validate_desktop_envelope(&aggregate_alias.to_string()).is_err(),
+        "aggregate utility availability must not survive in v3"
+    );
+}
+
+#[test]
+fn exact_display_and_utility_subproducer_updates_are_closed() {
+    let snapshot = snapshot_value();
+    let data = &snapshot["payload"]["data"];
+    let updates = [
+        (
+            "system",
+            serde_json::json!({ "domain": "brightness", "data": data["system"]["brightness"] }),
+        ),
+        (
+            "system",
+            serde_json::json!({ "domain": "nightLight", "data": data["system"]["nightLight"] }),
+        ),
+        (
+            "utilities",
+            serde_json::json!({ "domain": "trayItems", "data": data["utilities"]["trayItems"] }),
+        ),
+        (
+            "utilities",
+            serde_json::json!({ "domain": "clipboardEntries", "data": data["utilities"]["clipboardEntries"] }),
+        ),
+        (
+            "utilities",
+            serde_json::json!({ "domain": "recording", "data": data["utilities"]["recording"] }),
+        ),
+        (
+            "utilities",
+            serde_json::json!({ "domain": "idleInhibited", "data": data["utilities"]["idleInhibited"] }),
+        ),
+        (
+            "utilities",
+            serde_json::json!({ "domain": "gameMode", "data": data["utilities"]["gameMode"] }),
+        ),
+        (
+            "utilities",
+            serde_json::json!({ "domain": "screenshot", "data": data["utilities"]["screenshot"] }),
+        ),
+        (
+            "utilities",
+            serde_json::json!({ "domain": "colorPicker", "data": data["utilities"]["colorPicker"] }),
+        ),
+    ];
+
+    for (index, (topic, update)) in updates.into_iter().enumerate() {
+        let event = domain_update(topic, update, 0x80 + index as u8);
+        assert!(
+            validate_desktop_envelope(&event.to_string()).is_ok(),
+            "{topic} subproducer update {index} must validate"
+        );
+    }
+
+    for invalid in [
+        serde_json::json!({ "domain": "utilities", "data": data["utilities"] }),
+        serde_json::json!({ "domain": "unknownUtility", "data": { "status": "available" } }),
+    ] {
+        let event = domain_update("utilities", invalid, 0x90);
+        assert!(
+            validate_desktop_envelope(&event.to_string()).is_err(),
+            "utility updates must identify one known exact subproducer"
+        );
+    }
+}
+
+#[test]
+fn hyprland_action_capabilities_cover_every_closed_command_exactly() {
+    let snapshot = snapshot_value();
+    let capabilities = snapshot
+        .pointer("/payload/data/compositor/hyprland/data/actionCapabilities")
+        .unwrap()
+        .as_object()
+        .unwrap();
+    let commands = [
+        (
+            "focusWindow",
+            serde_json::json!({ "type": "focusWindow", "data": { "windowId": "0x1" } }),
+        ),
+        (
+            "moveWindowToWorkspace",
+            serde_json::json!({ "type": "moveWindowToWorkspace", "data": { "windowId": "0x1", "workspaceId": "2" } }),
+        ),
+        (
+            "closeWindow",
+            serde_json::json!({ "type": "closeWindow", "data": { "windowId": "0x1" } }),
+        ),
+        (
+            "focusWorkspace",
+            serde_json::json!({ "type": "focusWorkspace", "data": { "workspaceId": "2" } }),
+        ),
+        (
+            "moveWorkspaceToMonitor",
+            serde_json::json!({ "type": "moveWorkspaceToMonitor", "data": { "workspaceId": "2", "monitorId": "DP-1" } }),
+        ),
+        (
+            "toggleFullscreen",
+            serde_json::json!({ "type": "toggleFullscreen", "data": { "windowId": "0x1" } }),
+        ),
+        (
+            "toggleFloating",
+            serde_json::json!({ "type": "toggleFloating", "data": { "windowId": "0x1" } }),
+        ),
+        (
+            "togglePinned",
+            serde_json::json!({ "type": "togglePinned", "data": { "windowId": "0x1" } }),
+        ),
+        (
+            "toggleGroup",
+            serde_json::json!({ "type": "toggleGroup", "data": { "windowId": "0x1" } }),
+        ),
+        ("exit", serde_json::json!({ "type": "exit" })),
+    ];
+
+    assert_eq!(
+        capabilities
+            .keys()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>(),
+        commands
+            .iter()
+            .map(|(name, _)| *name)
+            .collect::<BTreeSet<_>>()
+    );
+    for (name, command) in commands {
+        assert!(capabilities[name].is_boolean(), "{name} must be explicit");
+        let request = serde_json::json!({
+            "schemaVersion": 3,
+            "requestId": "018f3f4c-8af1-7f6b-bf42-1bd472868e66",
+            "expectedGeneration": 7,
+            "command": { "family": "compositor", "command": command }
+        });
+        assert!(validate_desktop_request(&request.to_string()).is_ok());
+
+        let mut missing = snapshot_value();
+        missing
+            .pointer_mut("/payload/data/compositor/hyprland/data/actionCapabilities")
+            .unwrap()
+            .as_object_mut()
+            .unwrap()
+            .remove(name);
+        assert!(
+            validate_desktop_envelope(&missing.to_string()).is_err(),
+            "missing {name} capability must fail closed"
+        );
+    }
+
+    let mut unknown = snapshot_value();
+    unknown["payload"]["data"]["compositor"]["hyprland"]["data"]["actionCapabilities"]
+        ["unknownAction"] = serde_json::json!(false);
+    assert!(validate_desktop_envelope(&unknown.to_string()).is_err());
+}
+
+#[test]
+fn corrected_v3_capability_types_are_public_and_serialize_to_exact_update_domains() {
+    let utility_snapshot = DesktopUtilitySnapshot {
+        tray_items: available(Vec::new()),
+        clipboard_entries: available(Vec::new()),
+        recording: available(RecordingState {
+            status: RecordingStatus::Inactive,
+            recording_id: None,
+            output_id: None,
+        }),
+        idle_inhibited: available(false),
+        game_mode: available(false),
+        screenshot: ProducerAvailability {
+            status: CapabilityAvailability::Available,
+            diagnostic: None,
+        },
+        color_picker: ProducerAvailability {
+            status: CapabilityAvailability::Available,
+            diagnostic: None,
+        },
+    };
+    let action_capabilities = HyprlandActionCapabilities {
+        focus_window: true,
+        move_window_to_workspace: true,
+        close_window: true,
+        focus_workspace: true,
+        move_workspace_to_monitor: true,
+        toggle_fullscreen: false,
+        toggle_floating: true,
+        toggle_pinned: true,
+        toggle_group: false,
+        exit: true,
+    };
+
+    assert_eq!(
+        serde_json::to_value(available(BrightnessSnapshot { level: 0.65 })).unwrap(),
+        serde_json::json!({ "status": "available", "data": { "level": 0.65 } })
+    );
+    assert_eq!(
+        serde_json::to_value(available(NightLightSnapshot { enabled: false })).unwrap(),
+        serde_json::json!({ "status": "available", "data": { "enabled": false } })
+    );
+    assert_eq!(
+        serde_json::to_value(&utility_snapshot).unwrap(),
+        serde_json::json!({
+            "trayItems": { "status": "available", "data": [] },
+            "clipboardEntries": { "status": "available", "data": [] },
+            "recording": { "status": "available", "data": { "status": "inactive" } },
+            "idleInhibited": { "status": "available", "data": false },
+            "gameMode": { "status": "available", "data": false },
+            "screenshot": { "status": "available" },
+            "colorPicker": { "status": "available" }
+        })
+    );
+    assert!(!action_capabilities.toggle_fullscreen);
+    assert!(!action_capabilities.toggle_group);
+    let stable_id = || StableId("target".into());
+    let commands = [
+        (
+            HyprlandCommand::FocusWindow {
+                window_id: stable_id(),
+            },
+            true,
+        ),
+        (
+            HyprlandCommand::MoveWindowToWorkspace {
+                window_id: stable_id(),
+                workspace_id: stable_id(),
+            },
+            true,
+        ),
+        (
+            HyprlandCommand::CloseWindow {
+                window_id: stable_id(),
+            },
+            true,
+        ),
+        (
+            HyprlandCommand::FocusWorkspace {
+                workspace_id: stable_id(),
+            },
+            true,
+        ),
+        (
+            HyprlandCommand::MoveWorkspaceToMonitor {
+                workspace_id: stable_id(),
+                monitor_id: stable_id(),
+            },
+            true,
+        ),
+        (
+            HyprlandCommand::ToggleFullscreen {
+                window_id: stable_id(),
+            },
+            false,
+        ),
+        (
+            HyprlandCommand::ToggleFloating {
+                window_id: stable_id(),
+            },
+            true,
+        ),
+        (
+            HyprlandCommand::TogglePinned {
+                window_id: stable_id(),
+            },
+            true,
+        ),
+        (
+            HyprlandCommand::ToggleGroup {
+                window_id: stable_id(),
+            },
+            false,
+        ),
+        (HyprlandCommand::Exit, true),
+    ];
+    for (command, expected) in commands {
+        assert_eq!(action_capabilities.supports(&command), expected);
+    }
+
+    let system_updates = [
+        DesktopSystemUpdate::Brightness(available(BrightnessSnapshot { level: 0.65 })),
+        DesktopSystemUpdate::NightLight(available(NightLightSnapshot { enabled: false })),
+    ];
+    assert_eq!(
+        system_updates
+            .into_iter()
+            .map(|update| serde_json::to_value(update).unwrap()["domain"].clone())
+            .collect::<Vec<_>>(),
+        ["brightness", "nightLight"]
+    );
+
+    let updates = [
+        DesktopUtilityUpdate::TrayItems(utility_snapshot.tray_items.clone()),
+        DesktopUtilityUpdate::ClipboardEntries(utility_snapshot.clipboard_entries.clone()),
+        DesktopUtilityUpdate::Recording(utility_snapshot.recording.clone()),
+        DesktopUtilityUpdate::IdleInhibited(utility_snapshot.idle_inhibited.clone()),
+        DesktopUtilityUpdate::GameMode(utility_snapshot.game_mode.clone()),
+        DesktopUtilityUpdate::Screenshot(utility_snapshot.screenshot.clone()),
+        DesktopUtilityUpdate::ColorPicker(utility_snapshot.color_picker.clone()),
+    ];
+    assert_eq!(
+        updates
+            .into_iter()
+            .map(|update| serde_json::to_value(update).unwrap()["domain"].clone())
+            .collect::<Vec<_>>(),
+        [
+            "trayItems",
+            "clipboardEntries",
+            "recording",
+            "idleInhibited",
+            "gameMode",
+            "screenshot",
+            "colorPicker",
         ]
     );
 }
@@ -172,8 +600,8 @@ fn empty_and_duplicate_stable_ids_cannot_corrupt_incremental_models() {
         ("/payload/data/system/media/data/players", "id"),
         ("/payload/data/launcher/entries", "id"),
         ("/payload/data/resources/samples", "id"),
-        ("/payload/data/utilities/trayItems", "id"),
-        ("/payload/data/utilities/clipboardEntries", "id"),
+        ("/payload/data/utilities/trayItems/data", "id"),
+        ("/payload/data/utilities/clipboardEntries/data", "id"),
     ] {
         let mut empty = snapshot_value();
         empty
@@ -225,6 +653,7 @@ fn meters_reject_nonfinite_and_unnormalized_values_before_reaching_qml() {
         "/payload/data/system/audio/data/nodes/0/volume",
         "/payload/data/system/audio/data/streams/0/volume",
         "/payload/data/system/media/data/players/0/progress",
+        "/payload/data/system/brightness/data/level",
         "/payload/data/resources/samples/0/cpuUsage",
         "/payload/data/resources/samples/0/memoryUsage",
     ] {
@@ -256,8 +685,8 @@ fn every_untrusted_collection_has_its_exact_resource_ceiling() {
         ("/payload/data/system/audio/data/nodes", 4_096),
         ("/payload/data/system/audio/data/streams", 16_384),
         ("/payload/data/system/media/data/players", 256),
-        ("/payload/data/utilities/trayItems", 1_024),
-        ("/payload/data/utilities/clipboardEntries", 500),
+        ("/payload/data/utilities/trayItems/data", 1_024),
+        ("/payload/data/utilities/clipboardEntries/data", 500),
         ("/payload/data/notifications/active", 500),
     ];
 
@@ -291,7 +720,7 @@ fn every_untrusted_collection_has_its_exact_resource_ceiling() {
 fn tray_menu_tree_has_a_total_node_ceiling_not_only_a_root_ceiling() {
     let mut candidate = snapshot_value();
     let children = candidate
-        .pointer_mut("/payload/data/utilities/trayItems/0/menu/children")
+        .pointer_mut("/payload/data/utilities/trayItems/data/0/menu/children")
         .unwrap()
         .as_array_mut()
         .unwrap();
@@ -387,7 +816,10 @@ fn incremental_updates_cover_every_snapshot_topic_without_resending_a_full_snaps
         ("weather", data["weather"].clone()),
         ("appearance", data["appearance"].clone()),
         ("resources", data["resources"].clone()),
-        ("utilities", data["utilities"].clone()),
+        (
+            "utilities",
+            serde_json::json!({ "domain": "recording", "data": data["utilities"]["recording"] }),
+        ),
     ];
 
     for (index, (topic, update)) in updates.into_iter().enumerate() {
@@ -453,17 +885,18 @@ fn v3_commands_cover_required_producer_mutations_without_serialized_secrets() {
 #[test]
 fn tray_menu_ids_are_local_to_an_item_but_unique_within_that_item() {
     let mut separate_items = snapshot_value();
-    let mut second = separate_items["payload"]["data"]["utilities"]["trayItems"][0].clone();
+    let mut second = separate_items["payload"]["data"]["utilities"]["trayItems"]["data"][0].clone();
     second["id"] = serde_json::json!("second-tray-item");
-    separate_items["payload"]["data"]["utilities"]["trayItems"]
+    separate_items["payload"]["data"]["utilities"]["trayItems"]["data"]
         .as_array_mut()
         .unwrap()
         .push(second);
     assert!(validate_desktop_envelope(&separate_items.to_string()).is_ok());
 
     let mut same_item = snapshot_value();
-    same_item["payload"]["data"]["utilities"]["trayItems"][0]["menu"]["children"][0]["id"] =
-        same_item["payload"]["data"]["utilities"]["trayItems"][0]["menu"]["id"].clone();
+    same_item["payload"]["data"]["utilities"]["trayItems"]["data"][0]["menu"]["children"][0]
+        ["id"] =
+        same_item["payload"]["data"]["utilities"]["trayItems"]["data"][0]["menu"]["id"].clone();
     assert!(validate_desktop_envelope(&same_item.to_string()).is_err());
 }
 

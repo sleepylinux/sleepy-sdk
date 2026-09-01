@@ -825,9 +825,14 @@ pub enum UtilityCommand {
     },
     StartRecording {
         output_id: StableId,
+        #[serde(default)]
+        audio: bool,
     },
     PauseRecording,
     StopRecording,
+    DeleteRecording {
+        recording_id: StableId,
+    },
     Screenshot {
         output_id: StableId,
     },
@@ -1702,10 +1707,11 @@ fn validate_command(command: &DesktopCommand) -> Result<(), ContractError> {
             UtilityCommand::PasteClipboard { entry_id } => {
                 require_stable_id(entry_id, "clipboard entryId")
             }
-            UtilityCommand::StartRecording { output_id }
+            UtilityCommand::StartRecording { output_id, .. }
             | UtilityCommand::Screenshot { output_id } => {
                 require_stable_id(output_id, "utility outputId")
             }
+            UtilityCommand::DeleteRecording { recording_id } => require_recording_id(recording_id),
             UtilityCommand::ClearClipboard
             | UtilityCommand::SetIdleInhibited { .. }
             | UtilityCommand::PauseRecording
@@ -1714,6 +1720,23 @@ fn validate_command(command: &DesktopCommand) -> Result<(), ContractError> {
             | UtilityCommand::SetGameMode { .. } => Ok(()),
         },
         DesktopCommand::Session(_) => Ok(()),
+    }
+}
+
+fn require_recording_id(value: &StableId) -> Result<(), ContractError> {
+    let value = value.as_str();
+    let valid = value.starts_with("recording_")
+        && value.ends_with(".mp4")
+        && value.len() <= 96
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.'));
+    if valid {
+        Ok(())
+    } else {
+        Err(ContractError::new(
+            "utility recordingId must be a bounded recording_*.mp4 basename",
+        ))
     }
 }
 

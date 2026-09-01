@@ -494,6 +494,7 @@
         { "$ref": "#/$defs/clearClipboard" },
         { "$ref": "#/$defs/setIdleInhibited" },
         { "$ref": "#/$defs/startRecording" },
+        { "$ref": "#/$defs/deleteRecording" },
         { "$ref": "#/$defs/pauseRecording" },
         { "$ref": "#/$defs/stopRecording" },
         { "$ref": "#/$defs/screenshot" },
@@ -527,7 +528,21 @@
     },
     "startRecording": {
       "type": "object", "additionalProperties": false, "required": ["type", "data"],
-      "properties": { "type": { "const": "startRecording" }, "data": { "$ref": "#/$defs/outputId" } }
+      "properties": { "type": { "const": "startRecording" }, "data": { "$ref": "#/$defs/recordingOptions" } }
+    },
+    "recordingOptions": {
+      "type": "object", "additionalProperties": false, "required": ["outputId"],
+      "properties": { "outputId": { "$ref": "#/$defs/stableId" }, "audio": { "type": "boolean" } }
+    },
+    "deleteRecording": {
+      "type": "object", "additionalProperties": false, "required": ["type", "data"],
+      "properties": {
+        "type": { "const": "deleteRecording" },
+        "data": {
+          "type": "object", "additionalProperties": false, "required": ["recordingId"],
+          "properties": { "recordingId": { "type": "string", "minLength": 15, "maxLength": 96, "pattern": "^recording_[A-Za-z0-9_.-]+\\.mp4$" } }
+        }
+      }
     },
     "screenshot": {
       "type": "object", "additionalProperties": false, "required": ["type", "data"],

@@ -1100,3 +1100,40 @@ fn failed_result_diagnostics_are_nonempty_and_timestamps_are_canonical_rfc3339_u
         );
     }
 }
+
+#[test]
+fn recording_audio_and_deletion_have_typed_bounded_commands() {
+    let base = |command| {
+        serde_json::json!({
+            "schemaVersion": 3,
+            "requestId": "018f3f4c-8af1-7f6b-bf42-1bd472868e66",
+            "expectedGeneration": 8,
+            "command": { "family": "utility", "command": command }
+        })
+    };
+
+    assert!(validate_desktop_request(
+        &base(serde_json::json!({
+            "type": "startRecording",
+            "data": { "outputId": "selection", "audio": true }
+        }))
+        .to_string()
+    )
+    .is_ok());
+    assert!(validate_desktop_request(
+        &base(serde_json::json!({
+            "type": "deleteRecording",
+            "data": { "recordingId": "recording_20260901_12-34-56.mp4" }
+        }))
+        .to_string()
+    )
+    .is_ok());
+    assert!(validate_desktop_request(
+        &base(serde_json::json!({
+            "type": "deleteRecording",
+            "data": { "recordingId": "../outside.mp4" }
+        }))
+        .to_string()
+    )
+    .is_err());
+}

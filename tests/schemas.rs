@@ -464,6 +464,7 @@ fn desktop_v3_command_schema_covers_every_closed_rust_command_alternative() {
         serde_json::json!({ "family": "utility", "command": { "type": "setGameMode", "data": { "enabled": true } } }),
         serde_json::json!({ "family": "session", "command": "lock" }),
         serde_json::json!({ "family": "session", "command": "suspend" }),
+        serde_json::json!({ "family": "session", "command": "hibernate" }),
         serde_json::json!({ "family": "session", "command": "logout" }),
         serde_json::json!({ "family": "session", "command": "reboot" }),
         serde_json::json!({ "family": "session", "command": "powerOff" }),

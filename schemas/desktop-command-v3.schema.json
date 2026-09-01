@@ -568,7 +568,7 @@
       "type": "object", "additionalProperties": false, "required": ["family", "command"],
       "properties": {
         "family": { "const": "session" },
-        "command": { "enum": ["lock", "suspend", "logout", "reboot", "powerOff"] }
+        "command": { "enum": ["lock", "suspend", "hibernate", "logout", "reboot", "powerOff"] }
       }
     }
   }

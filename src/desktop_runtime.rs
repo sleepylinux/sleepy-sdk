@@ -847,6 +847,7 @@ pub enum UtilityCommand {
 pub enum DesktopSessionCommand {
     Lock,
     Suspend,
+    Hibernate,
     Logout,
     Reboot,
     PowerOff,

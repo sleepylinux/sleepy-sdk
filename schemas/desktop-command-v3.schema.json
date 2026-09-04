@@ -532,7 +532,23 @@
     },
     "recordingOptions": {
       "type": "object", "additionalProperties": false, "required": ["outputId"],
-      "properties": { "outputId": { "$ref": "#/$defs/stableId" }, "target": { "enum": ["output", "region"] }, "audio": { "type": "boolean" } }
+      "properties": {
+        "outputId": { "$ref": "#/$defs/stableId" },
+        "target": { "enum": ["output", "region"] },
+        "audio": { "type": "boolean" },
+        "region": {
+          "type": "object", "additionalProperties": false, "required": ["x", "y", "width", "height"],
+          "properties": {
+            "x": { "type": "integer", "minimum": -131072, "maximum": 131072 },
+            "y": { "type": "integer", "minimum": -131072, "maximum": 131072 },
+            "width": { "type": "integer", "minimum": 1, "maximum": 32768 },
+            "height": { "type": "integer", "minimum": 1, "maximum": 32768 }
+          }
+        }
+      },
+      "if": { "required": ["target"], "properties": { "target": { "const": "region" } } },
+      "then": { "required": ["region"] },
+      "else": { "not": { "required": ["region"] } }
     },
     "deleteRecording": {
       "type": "object", "additionalProperties": false, "required": ["type", "data"],

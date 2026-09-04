@@ -1115,7 +1115,8 @@ fn recording_audio_and_deletion_have_typed_bounded_commands() {
     assert!(validate_desktop_request(
         &base(serde_json::json!({
             "type": "startRecording",
-            "data": { "outputId": "output:DP-1", "target": "region", "audio": true }
+            "data": { "outputId": "output:DP-1", "target": "region", "audio": true,
+                "region": {"x": -100, "y": 20, "width": 640, "height": 480} }
         }))
         .to_string()
     )

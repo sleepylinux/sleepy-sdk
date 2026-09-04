@@ -293,9 +293,9 @@ pub use desktop_runtime::{
     HyprlandActionCapabilities, HyprlandCommand, HyprlandSnapshot, LauncherCommand, LauncherEntry,
     LockState, MediaCommand, MediaPlayer, MediaSnapshot, Monitor, NetworkAccessPoint,
     NetworkCommand, NetworkConnection, NetworkConnectionKind, NetworkSnapshot, NightLightSnapshot,
-    NotificationCommand, PowerCommand, ProducerAvailability, RecordingState, RecordingStatus,
-    RecordingTarget, ResourceSample, StableId, TrayItem, TrayMenuNode, UtilityCommand, Window,
-    Workspace, DESKTOP_WIRE_VERSION,
+    NotificationCommand, PowerCommand, ProducerAvailability, RecordingRegion, RecordingState,
+    RecordingStatus, RecordingTarget, ResourceSample, StableId, TrayItem, TrayMenuNode,
+    UtilityCommand, Window, Workspace, DESKTOP_WIRE_VERSION,
 };
 pub use domains::{
     validate_hardware_capability_snapshot, validate_installation_profile,

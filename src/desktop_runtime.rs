@@ -827,6 +827,8 @@ pub enum UtilityCommand {
         output_id: StableId,
         #[serde(default)]
         target: RecordingTarget,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        region: Option<RecordingRegion>,
         #[serde(default)]
         audio: bool,
     },
@@ -850,6 +852,24 @@ pub enum RecordingTarget {
     #[default]
     Output,
     Region,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RecordingRegion {
+    pub x: i32,
+    pub y: i32,
+    pub width: u32,
+    pub height: u32,
+}
+
+impl RecordingRegion {
+    pub fn is_valid(&self) -> bool {
+        (-131072..=131072).contains(&self.x)
+            && (-131072..=131072).contains(&self.y)
+            && (1..=32768).contains(&self.width)
+            && (1..=32768).contains(&self.height)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -1719,8 +1739,22 @@ fn validate_command(command: &DesktopCommand) -> Result<(), ContractError> {
             UtilityCommand::PasteClipboard { entry_id } => {
                 require_stable_id(entry_id, "clipboard entryId")
             }
-            UtilityCommand::StartRecording { output_id, .. }
-            | UtilityCommand::Screenshot { output_id } => {
+            UtilityCommand::StartRecording {
+                output_id,
+                target,
+                region,
+                ..
+            } => {
+                require_stable_id(output_id, "utility outputId")?;
+                match (target, region) {
+                    (RecordingTarget::Output, None) => Ok(()),
+                    (RecordingTarget::Region, Some(region)) if region.is_valid() => Ok(()),
+                    _ => Err(ContractError::new(
+                        "recording target requires matching bounded region geometry",
+                    )),
+                }
+            }
+            UtilityCommand::Screenshot { output_id } => {
                 require_stable_id(output_id, "utility outputId")
             }
             UtilityCommand::DeleteRecording { recording_id } => require_recording_id(recording_id),

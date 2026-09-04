@@ -1115,11 +1115,19 @@ fn recording_audio_and_deletion_have_typed_bounded_commands() {
     assert!(validate_desktop_request(
         &base(serde_json::json!({
             "type": "startRecording",
-            "data": { "outputId": "selection", "audio": true }
+            "data": { "outputId": "output:DP-1", "target": "region", "audio": true }
         }))
         .to_string()
     )
     .is_ok());
+    assert!(validate_desktop_request(
+        &base(serde_json::json!({
+            "type": "startRecording",
+            "data": { "outputId": "output:DP-1", "target": "window", "audio": false }
+        }))
+        .to_string()
+    )
+    .is_err());
     assert!(validate_desktop_request(
         &base(serde_json::json!({
             "type": "deleteRecording",
@@ -1136,4 +1144,15 @@ fn recording_audio_and_deletion_have_typed_bounded_commands() {
         .to_string()
     )
     .is_err());
+}
+
+#[test]
+fn suspend_then_hibernate_is_a_typed_session_command() {
+    let request = serde_json::json!({
+        "schemaVersion": 3,
+        "requestId": "018f3f4c-8af1-7f6b-bf42-1bd472868e66",
+        "expectedGeneration": 8,
+        "command": { "family": "session", "command": "suspendThenHibernate" }
+    });
+    assert!(validate_desktop_request(&request.to_string()).is_ok());
 }

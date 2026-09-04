@@ -532,7 +532,7 @@
     },
     "recordingOptions": {
       "type": "object", "additionalProperties": false, "required": ["outputId"],
-      "properties": { "outputId": { "$ref": "#/$defs/stableId" }, "audio": { "type": "boolean" } }
+      "properties": { "outputId": { "$ref": "#/$defs/stableId" }, "target": { "enum": ["output", "region"] }, "audio": { "type": "boolean" } }
     },
     "deleteRecording": {
       "type": "object", "additionalProperties": false, "required": ["type", "data"],
@@ -568,7 +568,7 @@
       "type": "object", "additionalProperties": false, "required": ["family", "command"],
       "properties": {
         "family": { "const": "session" },
-        "command": { "enum": ["lock", "suspend", "hibernate", "logout", "reboot", "powerOff"] }
+        "command": { "enum": ["lock", "suspend", "hibernate", "suspendThenHibernate", "logout", "reboot", "powerOff"] }
       }
     }
   }

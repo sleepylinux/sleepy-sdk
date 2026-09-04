@@ -826,6 +826,8 @@ pub enum UtilityCommand {
     StartRecording {
         output_id: StableId,
         #[serde(default)]
+        target: RecordingTarget,
+        #[serde(default)]
         audio: bool,
     },
     PauseRecording,
@@ -842,12 +844,21 @@ pub enum UtilityCommand {
     },
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum RecordingTarget {
+    #[default]
+    Output,
+    Region,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum DesktopSessionCommand {
     Lock,
     Suspend,
     Hibernate,
+    SuspendThenHibernate,
     Logout,
     Reboot,
     PowerOff,

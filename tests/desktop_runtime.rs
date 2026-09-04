@@ -1148,6 +1148,10 @@ fn recording_audio_and_deletion_have_typed_bounded_commands() {
 
 #[test]
 fn suspend_then_hibernate_is_a_typed_session_command() {
+    assert_eq!(
+        serde_json::to_value(sleepy_sdk::RecordingTarget::Region).unwrap(),
+        "region"
+    );
     let request = serde_json::json!({
         "schemaVersion": 3,
         "requestId": "018f3f4c-8af1-7f6b-bf42-1bd472868e66",

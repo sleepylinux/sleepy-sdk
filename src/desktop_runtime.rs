@@ -827,7 +827,11 @@ pub enum UtilityCommand {
         output_id: StableId,
         #[serde(default)]
         target: RecordingTarget,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            default,
+            deserialize_with = "deserialize_optional_non_null",
+            skip_serializing_if = "Option::is_none"
+        )]
         region: Option<RecordingRegion>,
         #[serde(default)]
         audio: bool,

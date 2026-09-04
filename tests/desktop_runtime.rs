@@ -1161,3 +1161,25 @@ fn suspend_then_hibernate_is_a_typed_session_command() {
     });
     assert!(validate_desktop_request(&request.to_string()).is_ok());
 }
+
+#[test]
+fn recording_geometry_rejects_missing_null_and_out_of_bounds_regions() {
+    for data in [
+        serde_json::json!({"outputId":"DP-1", "target":"region"}),
+        serde_json::json!({"outputId":"DP-1", "target":"output", "region":null}),
+        serde_json::json!({"outputId":"DP-1", "target":"region", "region":{"x":0,"y":0,"width":0,"height":1}}),
+        serde_json::json!({"outputId":"DP-1", "target":"region", "region":{"x":131073,"y":0,"width":1,"height":1}}),
+        serde_json::json!({"outputId":"DP-1", "target":"output", "region":{"x":0,"y":0,"width":1,"height":1}}),
+    ] {
+        let request = serde_json::json!({
+            "schemaVersion":3,
+            "requestId":"018f3f4c-8af1-7f6b-bf42-1bd472868e66",
+            "expectedGeneration":8,
+            "command":{"family":"utility","command":{"type":"startRecording","data":data}}
+        });
+        assert!(
+            validate_desktop_request(&request.to_string()).is_err(),
+            "accepted {request}"
+        );
+    }
+}

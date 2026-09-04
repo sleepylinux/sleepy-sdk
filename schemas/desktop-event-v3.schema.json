@@ -1,0 +1,916 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sleepy-linux.org/schemas/v3/desktop-event-v3.schema.json",
+  "title": "Sleepy desktop event v3",
+  "$comment": "JSON Schema is the mandatory structural validation stage. Rust validation is the mandatory semantic stage for unique keys, recursive aggregate counts, foreign-key membership, focus cardinality, cross-field correlation, interval ordering, theme contrast, and reused domain validators.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generation", "eventId", "emittedAt", "cause", "payload"],
+  "properties": {
+    "schemaVersion": { "const": 3 },
+    "generation": { "$ref": "#/$defs/positiveInteger" },
+    "eventId": { "$ref": "#/$defs/uuid" },
+    "emittedAt": { "$ref": "#/$defs/timestamp" },
+    "cause": { "$ref": "#/$defs/cause" },
+    "payload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "data"],
+          "properties": {
+            "type": { "const": "fullSnapshot" },
+            "data": { "$ref": "#/$defs/snapshot" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "data"],
+          "properties": {
+            "type": { "const": "domainUpdate" },
+            "data": { "$ref": "#/$defs/domainUpdate" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "data"],
+          "properties": {
+            "type": { "const": "commandResult" },
+            "data": { "$ref": "#/$defs/result" }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "payload": { "properties": { "type": { "const": "commandResult" } } } } },
+      "then": { "properties": { "cause": { "$ref": "#/$defs/requestCause" } } }
+    }
+  ],
+  "$defs": {
+    "positiveInteger": { "type": "integer", "minimum": 1, "maximum": 18446744073709551615 },
+    "normalized": { "type": "number", "minimum": 0, "maximum": 1 },
+    "nonEmpty": { "type": "string", "minLength": 1, "pattern": "^(\\S|\\S.*\\S)$" },
+    "uuid": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?!0000)(?:(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8])))|(?:(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29))T(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?Z$"
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["message"],
+      "properties": { "message": { "$ref": "#/$defs/nonEmpty" } }
+    },
+    "cause": {
+      "oneOf": [
+        { "$ref": "#/$defs/requestCause" },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "enum": ["external", "replay", "lifecycle"] } }
+        }
+      ]
+    },
+    "requestCause": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "requestId"],
+      "properties": { "kind": { "const": "request" }, "requestId": { "$ref": "#/$defs/uuid" } }
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "$comment": "JSON Schema is the structural stage. Rust additionally enforces unique stable keys, foreign-key membership, focus cardinality, interval ordering, theme contrast, recursive aggregate counts, and reused domain semantics.",
+      "required": ["system", "compositor", "notifications", "launcher", "calendar", "weather", "appearance", "resources", "utilities"],
+      "properties": {
+        "system": { "$ref": "#/$defs/system" },
+        "compositor": { "$ref": "#/$defs/compositor" },
+        "notifications": { "$ref": "#/$defs/notifications" },
+        "launcher": { "$ref": "#/$defs/launcher" },
+        "calendar": { "$ref": "#/$defs/calendar" },
+        "weather": { "$ref": "#/$defs/weather" },
+        "appearance": { "$ref": "#/$defs/appearance" },
+        "resources": { "$ref": "#/$defs/resources" },
+        "utilities": { "$ref": "#/$defs/utilities" }
+      }
+    },
+    "system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["network", "bluetooth", "audio", "media", "battery", "brightness", "nightLight", "power", "osd", "lock"],
+      "properties": {
+        "network": { "$ref": "#/$defs/networkCapability" },
+        "bluetooth": { "$ref": "#/$defs/bluetoothCapability" },
+        "audio": { "$ref": "#/$defs/audioCapability" },
+        "media": { "$ref": "#/$defs/mediaCapability" },
+        "battery": { "$ref": "#/$defs/batteryCapability" },
+        "brightness": { "$ref": "#/$defs/brightnessCapability" },
+        "nightLight": { "$ref": "#/$defs/nightLightCapability" },
+        "power": { "$ref": "#/$defs/powerCapability" },
+        "osd": { "$ref": "#/$defs/osdCapability" },
+        "lock": { "$ref": "#/$defs/lockCapability" }
+      }
+    },
+    "networkCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": { "status": { "const": "available" }, "data": { "$ref": "#/$defs/network" } }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wifiEnabled", "scanning", "accessPoints", "connections"],
+      "properties": {
+        "wifiEnabled": { "type": "boolean" },
+        "scanning": { "type": "boolean" },
+        "accessPoints": { "type": "array", "maxItems": 4096, "items": { "$ref": "#/$defs/accessPoint" } },
+        "connections": { "type": "array", "items": { "$ref": "#/$defs/connection" } }
+      }
+    },
+    "accessPoint": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "ssid", "signalLevel", "secured"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" }, "ssid": { "$ref": "#/$defs/nonEmpty" },
+        "signalLevel": { "$ref": "#/$defs/normalized" }, "secured": { "type": "boolean" }
+      }
+    },
+    "connection": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "name", "kind", "connected"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" }, "name": { "$ref": "#/$defs/nonEmpty" },
+        "kind": { "enum": ["ethernet", "wifi", "vpn"] }, "connected": { "type": "boolean" }
+      }
+    },
+    "bluetoothCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": { "status": { "const": "available" }, "data": { "$ref": "#/$defs/bluetooth" } }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "bluetooth": {
+      "type": "object", "additionalProperties": false,
+      "required": ["powered", "scanning", "devices"],
+      "properties": {
+        "powered": { "type": "boolean" },
+        "scanning": { "type": "boolean" },
+        "devices": { "type": "array", "maxItems": 1024, "items": { "$ref": "#/$defs/bluetoothDevice" } }
+      }
+    },
+    "bluetoothDevice": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "name", "paired", "connected"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" }, "name": { "$ref": "#/$defs/nonEmpty" },
+        "paired": { "type": "boolean" }, "connected": { "type": "boolean" }
+      }
+    },
+    "audioCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": { "status": { "const": "available" }, "data": { "$ref": "#/$defs/audio" } }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "audio": {
+      "type": "object", "additionalProperties": false,
+      "required": ["nodes", "streams"],
+      "properties": {
+        "nodes": { "type": "array", "maxItems": 4096, "items": { "$ref": "#/$defs/audioNode" } },
+        "streams": { "type": "array", "maxItems": 16384, "items": { "$ref": "#/$defs/audioStream" } }
+      }
+    },
+    "audioNode": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "name", "kind", "volume", "muted", "isDefault"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" }, "name": { "$ref": "#/$defs/nonEmpty" },
+        "kind": { "enum": ["input", "output"] }, "volume": { "$ref": "#/$defs/normalized" },
+        "muted": { "type": "boolean" }, "isDefault": { "type": "boolean" }
+      }
+    },
+    "audioStream": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "name", "nodeId", "volume", "muted"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" }, "name": { "$ref": "#/$defs/nonEmpty" },
+        "nodeId": { "$ref": "#/$defs/nonEmpty" }, "volume": { "$ref": "#/$defs/normalized" },
+        "muted": { "type": "boolean" }
+      }
+    },
+    "mediaCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": { "status": { "const": "available" }, "data": { "$ref": "#/$defs/media" } }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "media": {
+      "type": "object", "additionalProperties": false,
+      "required": ["players"],
+      "properties": { "players": { "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/player" } } }
+    },
+    "player": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "identity", "title", "artist", "playing", "progress"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" }, "identity": { "$ref": "#/$defs/nonEmpty" },
+        "title": { "type": "string" }, "artist": { "type": "string" }, "playing": { "type": "boolean" },
+        "progress": { "$ref": "#/$defs/normalized" }
+      }
+    },
+    "batteryCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": { "status": { "const": "available" }, "data": { "$ref": "#/$defs/battery" } }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "battery": {
+      "type": "object", "additionalProperties": false,
+      "required": ["level", "charging"],
+      "properties": {
+        "level": { "$ref": "#/$defs/normalized" }, "charging": { "type": "boolean" },
+        "secondsRemaining": { "type": "integer", "minimum": 0, "maximum": 18446744073709551615 }
+      }
+    },
+    "brightnessCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": { "status": { "const": "available" }, "data": { "$ref": "#/$defs/brightness" } }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "brightness": {
+      "type": "object", "additionalProperties": false,
+      "required": ["level"],
+      "properties": { "level": { "$ref": "#/$defs/normalized" } }
+    },
+    "nightLightCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": { "status": { "const": "available" }, "data": { "$ref": "#/$defs/nightLight" } }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "nightLight": {
+      "type": "object", "additionalProperties": false,
+      "required": ["enabled"],
+      "properties": { "enabled": { "type": "boolean" } }
+    },
+    "powerCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": { "status": { "const": "available" }, "data": { "$ref": "#/$defs/power" } }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "power": {
+      "type": "object", "additionalProperties": false,
+      "required": ["activeProfile", "availableProfiles"],
+      "$comment": "Rust semantic validation requires unique available profiles and membership of activeProfile.",
+      "properties": {
+        "activeProfile": { "$ref": "#/$defs/powerProfile" },
+        "availableProfiles": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/powerProfile" } }
+      }
+    },
+    "powerProfile": { "enum": ["power-saver", "balanced", "performance"] },
+    "osdCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": { "status": { "const": "available" }, "data": { "$ref": "#/$defs/osd" } }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "osd": {
+      "type": "object", "additionalProperties": false,
+      "required": ["history"],
+      "properties": {
+        "current": { "$ref": "#/$defs/osdEvent" },
+        "history": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/osdEvent" } }
+      }
+    },
+    "osdEvent": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "outputId", "kind", "label"],
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "enum": ["volume", "microphone", "brightness"] } } },
+          "then": { "required": ["level"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "brightness" } } },
+          "then": { "not": { "required": ["muted"] } }
+        }
+      ],
+      "properties": {
+        "schemaVersion": { "const": 2 }, "outputId": { "$ref": "#/$defs/nonEmpty" },
+        "kind": { "enum": ["volume", "microphone", "brightness", "media", "powerProfile"] },
+        "level": { "$ref": "#/$defs/normalized" }, "muted": { "type": "boolean" },
+        "label": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "unavailableCapability": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "diagnostic"],
+      "properties": {
+        "status": { "enum": ["unavailable", "unsupported", "permissionDenied", "timeout", "parse", "error"] },
+        "diagnostic": { "$ref": "#/$defs/diagnostic" }
+      }
+    },
+    "producerAvailability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status"], "properties": { "status": { "const": "available" } }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "diagnostic"],
+          "properties": {
+            "status": { "enum": ["unavailable", "unsupported", "permissionDenied", "timeout", "parse", "error"] },
+            "diagnostic": { "$ref": "#/$defs/diagnostic" }
+          }
+        }
+      ]
+    },
+    "lock": {
+      "type": "object", "additionalProperties": false,
+      "required": ["secure"], "properties": { "secure": { "type": "boolean" } }
+    },
+    "lockCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": { "status": { "const": "available" }, "data": { "$ref": "#/$defs/lock" } }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "compositor": {
+      "type": "object", "additionalProperties": false,
+      "required": ["hyprland"], "properties": { "hyprland": { "$ref": "#/$defs/hyprlandCapability" } }
+    },
+    "hyprlandCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": { "status": { "const": "available" }, "data": { "$ref": "#/$defs/hyprland" } }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "hyprland": {
+      "type": "object", "additionalProperties": false,
+      "required": ["actionCapabilities", "monitors", "workspaces", "windows"],
+      "properties": {
+        "actionCapabilities": { "$ref": "#/$defs/hyprlandActionCapabilities" },
+        "monitors": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/monitor" } },
+        "workspaces": { "$ref": "#/$defs/workspaceCollection" },
+        "windows": { "type": "array", "maxItems": 16384, "items": { "$ref": "#/$defs/window" } }
+      }
+    },
+    "hyprlandActionCapabilities": {
+      "type": "object", "additionalProperties": false,
+      "required": ["focusWindow", "moveWindowToWorkspace", "closeWindow", "focusWorkspace", "moveWorkspaceToMonitor", "toggleFullscreen", "toggleFloating", "togglePinned", "toggleGroup", "exit"],
+      "properties": {
+        "focusWindow": { "type": "boolean" },
+        "moveWindowToWorkspace": { "type": "boolean" },
+        "closeWindow": { "type": "boolean" },
+        "focusWorkspace": { "type": "boolean" },
+        "moveWorkspaceToMonitor": { "type": "boolean" },
+        "toggleFullscreen": { "type": "boolean" },
+        "toggleFloating": { "type": "boolean" },
+        "togglePinned": { "type": "boolean" },
+        "toggleGroup": { "type": "boolean" },
+        "exit": { "type": "boolean" }
+      }
+    },
+    "monitor": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "name", "width", "height", "scale", "focused"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" }, "name": { "$ref": "#/$defs/nonEmpty" },
+        "width": { "type": "integer", "minimum": 1, "maximum": 4294967295 },
+        "height": { "type": "integer", "minimum": 1, "maximum": 4294967295 },
+        "scale": { "type": "number", "exclusiveMinimum": 0 }, "focused": { "type": "boolean" }
+      }
+    },
+    "workspace": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "name", "monitorId", "focused"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" }, "name": { "$ref": "#/$defs/nonEmpty" },
+        "monitorId": { "$ref": "#/$defs/nonEmpty" }, "focused": { "type": "boolean" }
+      }
+    },
+    "workspaceCollection": {
+      "type": "array",
+      "maxItems": 1024,
+      "items": { "$ref": "#/$defs/workspace" },
+      "contains": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "monitorId", "focused"],
+        "properties": {
+          "id": { "$ref": "#/$defs/nonEmpty" },
+          "name": { "$ref": "#/$defs/nonEmpty" },
+          "monitorId": { "$ref": "#/$defs/nonEmpty" },
+          "focused": { "const": true }
+        }
+      },
+      "minContains": 0,
+      "maxContains": 1,
+      "$comment": "At-most-one focused workspace is locally structural. monitorId membership requires a graph-bearing full snapshot or Hyprland update; a standalone workspace update has no monitor collection and Rust intentionally validates only its local invariants before consumers reconcile it with current state."
+    },
+    "window": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "title", "applicationId", "workspaceId", "focused", "fullscreen", "floating", "pinned", "grouped"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" }, "title": { "type": "string" },
+        "applicationId": { "$ref": "#/$defs/nonEmpty" }, "workspaceId": { "$ref": "#/$defs/nonEmpty" },
+        "focused": { "type": "boolean" }, "fullscreen": { "type": "boolean" },
+        "floating": { "type": "boolean" }, "pinned": { "type": "boolean" },
+        "grouped": { "type": "boolean" }
+      }
+    },
+    "notifications": {
+      "type": "object", "additionalProperties": false,
+      "required": ["availability", "dnd", "active"],
+      "properties": {
+        "availability": { "$ref": "#/$defs/producerAvailability" },
+        "dnd": { "type": "boolean" },
+        "active": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/notification" } }
+      }
+    },
+    "notification": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "id", "applicationId", "summary", "body", "urgency", "createdAt", "read", "archived", "actions"],
+      "properties": {
+        "schemaVersion": { "const": 2 }, "id": { "$ref": "#/$defs/positiveInteger" },
+        "applicationId": { "$ref": "#/$defs/nonEmpty" }, "summary": { "$ref": "#/$defs/nonEmpty" },
+        "body": { "type": "string" }, "urgency": { "enum": ["low", "normal", "critical"] },
+        "createdAt": { "$ref": "#/$defs/timestamp" }, "timeoutMs": { "type": "integer", "minimum": 0, "maximum": 18446744073709551615 },
+        "read": { "type": "boolean" }, "archived": { "type": "boolean" },
+        "actions": { "type": "array", "items": { "$ref": "#/$defs/notificationAction" } }
+      }
+    },
+    "notificationAction": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "label", "state"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" }, "label": { "$ref": "#/$defs/nonEmpty" },
+        "state": { "enum": ["available", "expired"] }
+      }
+    },
+    "launcher": {
+      "type": "object", "additionalProperties": false,
+      "required": ["availability", "entries"],
+      "properties": {
+        "availability": { "$ref": "#/$defs/producerAvailability" },
+        "entries": { "type": "array", "items": { "$ref": "#/$defs/launcherEntry" } }
+      }
+    },
+    "launcherEntry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "name", "icon"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" }, "name": { "$ref": "#/$defs/nonEmpty" },
+        "icon": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "calendar": {
+      "type": "object", "additionalProperties": false,
+      "required": ["availability", "snapshot"],
+      "$comment": "Calendar interval ordering and stable event-key uniqueness are enforced by Rust semantic validation.",
+      "properties": {
+        "availability": { "$ref": "#/$defs/producerAvailability" },
+        "snapshot": { "$ref": "#/$defs/calendarData" }
+      }
+    },
+    "calendarData": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "providerId", "windowStart", "windowEnd", "events", "sourceErrors"],
+      "properties": {
+        "schemaVersion": { "const": 2 }, "providerId": { "$ref": "#/$defs/nonEmpty" },
+        "windowStart": { "$ref": "#/$defs/timestamp" }, "windowEnd": { "$ref": "#/$defs/timestamp" },
+        "events": { "type": "array", "items": { "$ref": "#/$defs/calendarEvent" } },
+        "sourceErrors": { "type": "array", "items": { "$ref": "#/$defs/calendarError" } }
+      }
+    },
+    "calendarEvent": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "summary", "startsAt", "endsAt", "allDay", "sourceId"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" }, "summary": { "$ref": "#/$defs/nonEmpty" },
+        "startsAt": { "$ref": "#/$defs/timestamp" }, "endsAt": { "$ref": "#/$defs/timestamp" },
+        "allDay": { "type": "boolean" }, "sourceId": { "$ref": "#/$defs/nonEmpty" }, "location": { "type": "string" }
+      }
+    },
+    "calendarError": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sourceId", "message"],
+      "properties": { "sourceId": { "$ref": "#/$defs/nonEmpty" }, "message": { "$ref": "#/$defs/nonEmpty" } }
+    },
+    "weather": {
+      "type": "object", "additionalProperties": false,
+      "required": ["availability", "snapshot"],
+      "properties": {
+        "availability": { "$ref": "#/$defs/producerAvailability" },
+        "snapshot": { "$ref": "#/$defs/weatherData" }
+      }
+    },
+    "weatherData": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "providerId", "location", "status", "cache", "attribution", "forecast"],
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "online" } } },
+          "then": { "not": { "required": ["diagnostic"] } }
+        },
+        {
+          "if": { "properties": { "status": { "enum": ["offline", "error"] } } },
+          "then": { "required": ["diagnostic"] }
+        }
+      ],
+      "properties": {
+        "schemaVersion": { "const": 2 }, "providerId": { "$ref": "#/$defs/nonEmpty" },
+        "location": { "$ref": "#/$defs/weatherLocation" }, "status": { "enum": ["online", "offline", "error"] },
+        "cache": { "enum": ["fresh", "stale", "missing"] }, "attribution": { "$ref": "#/$defs/nonEmpty" },
+        "forecast": { "type": "array", "items": { "$ref": "#/$defs/forecast" } },
+        "diagnostic": { "$ref": "#/$defs/diagnostic" }
+      }
+    },
+    "weatherLocation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["displayName", "latitude", "longitude"],
+      "properties": {
+        "displayName": { "$ref": "#/$defs/nonEmpty" }, "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+        "longitude": { "type": "number", "minimum": -180, "maximum": 180 }
+      }
+    },
+    "forecast": {
+      "type": "object", "additionalProperties": false,
+      "required": ["at", "temperatureC", "symbol"],
+      "properties": { "at": { "$ref": "#/$defs/timestamp" }, "temperatureC": { "type": "number" }, "symbol": { "$ref": "#/$defs/nonEmpty" } }
+    },
+    "appearance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["availability", "theme", "wallpaperId"],
+      "$comment": "Theme contrast is enforced by Rust semantic validation.",
+      "properties": {
+        "availability": { "$ref": "#/$defs/producerAvailability" },
+        "theme": { "$ref": "#/$defs/theme" }, "wallpaperId": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "theme": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "id", "name", "origin", "appearance", "effects", "reducedMotion", "opaqueFallback", "colors"],
+      "properties": {
+        "schemaVersion": { "const": 1 }, "id": { "$ref": "#/$defs/nonEmpty" }, "name": { "$ref": "#/$defs/nonEmpty" },
+        "origin": { "enum": ["builtin", "user"] }, "appearance": { "enum": ["dark", "light", "system"] },
+        "effects": { "enum": ["full", "reduced", "none"] }, "reducedMotion": { "type": "boolean" },
+        "opaqueFallback": { "type": "boolean" }, "colors": { "$ref": "#/$defs/colors" }
+      }
+    },
+    "colors": {
+      "type": "object", "additionalProperties": false,
+      "required": ["background", "surface", "textPrimary", "textSecondary", "accent", "control"],
+      "properties": {
+        "background": { "$ref": "#/$defs/color" }, "surface": { "$ref": "#/$defs/color" }, "textPrimary": { "$ref": "#/$defs/color" },
+        "textSecondary": { "$ref": "#/$defs/color" }, "accent": { "$ref": "#/$defs/color" }, "control": { "$ref": "#/$defs/color" }
+      }
+    },
+    "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+    "resources": {
+      "type": "object", "additionalProperties": false,
+      "required": ["availability", "samples"],
+      "$comment": "Stable sample-key uniqueness is enforced by Rust semantic validation.",
+      "properties": {
+        "availability": { "$ref": "#/$defs/producerAvailability" },
+        "samples": { "type": "array", "items": { "$ref": "#/$defs/resourceSample" } }
+      }
+    },
+    "resourceSample": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "cpuUsage", "memoryUsage", "loadOne"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" }, "cpuUsage": { "$ref": "#/$defs/normalized" },
+        "memoryUsage": { "$ref": "#/$defs/normalized" }, "loadOne": { "type": "number", "minimum": 0 }
+      }
+    },
+    "utilities": {
+      "type": "object", "additionalProperties": false,
+      "required": ["trayItems", "clipboardEntries", "recording", "idleInhibited", "gameMode", "screenshot", "colorPicker"],
+      "properties": {
+        "trayItems": { "$ref": "#/$defs/trayItemsCapability" },
+        "clipboardEntries": { "$ref": "#/$defs/clipboardEntriesCapability" },
+        "recording": { "$ref": "#/$defs/recordingCapability" },
+        "idleInhibited": { "$ref": "#/$defs/booleanCapability" },
+        "gameMode": { "$ref": "#/$defs/booleanCapability" },
+        "screenshot": { "$ref": "#/$defs/producerAvailability" },
+        "colorPicker": { "$ref": "#/$defs/producerAvailability" }
+      }
+    },
+    "trayItemsCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": {
+            "status": { "const": "available" },
+            "data": { "type": "array", "maxItems": 1024, "items": { "$ref": "#/$defs/trayItem" } }
+          }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "clipboardEntriesCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": {
+            "status": { "const": "available" },
+            "data": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/clipboardEntry" } }
+          }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "recordingCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": { "status": { "const": "available" }, "data": { "$ref": "#/$defs/recording" } }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "booleanCapability": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "data"],
+          "properties": { "status": { "const": "available" }, "data": { "type": "boolean" } }
+        },
+        { "$ref": "#/$defs/unavailableCapability" }
+      ]
+    },
+    "trayItem": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "title", "menu"],
+      "properties": { "id": { "$ref": "#/$defs/nonEmpty" }, "title": { "$ref": "#/$defs/nonEmpty" }, "menu": { "$ref": "#/$defs/menuNode" } }
+    },
+    "menuNode": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "label", "enabled", "children"],
+      "$comment": "Rust validation enforces the 65536-node aggregate bound across all recursive tray menus.",
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" }, "label": { "$ref": "#/$defs/nonEmpty" }, "enabled": { "type": "boolean" },
+        "children": { "type": "array", "maxItems": 65535, "items": { "$ref": "#/$defs/menuNode" } }
+      }
+    },
+    "clipboardEntry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "preview", "mimeType", "byteLength"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" }, "preview": { "type": "string" }, "mimeType": { "$ref": "#/$defs/nonEmpty" },
+        "byteLength": { "type": "integer", "minimum": 0, "maximum": 18446744073709551615 }
+      }
+    },
+    "recording": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status"], "properties": { "status": { "const": "inactive" } }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["status", "recordingId", "outputId"],
+          "properties": {
+            "status": { "enum": ["recording", "paused"] }, "recordingId": { "$ref": "#/$defs/nonEmpty" },
+            "outputId": { "$ref": "#/$defs/nonEmpty" }
+          }
+        }
+      ]
+    },
+    "domainUpdate": {
+      "oneOf": [
+        { "$ref": "#/$defs/systemDomainUpdate" },
+        { "$ref": "#/$defs/compositorDomainUpdate" },
+        { "$ref": "#/$defs/notificationsDomainUpdate" },
+        { "$ref": "#/$defs/launcherDomainUpdate" },
+        { "$ref": "#/$defs/calendarDomainUpdate" },
+        { "$ref": "#/$defs/weatherDomainUpdate" },
+        { "$ref": "#/$defs/appearanceDomainUpdate" },
+        { "$ref": "#/$defs/resourcesDomainUpdate" },
+        { "$ref": "#/$defs/utilitiesDomainUpdate" }
+      ]
+    },
+    "systemDomainUpdate": {
+      "type": "object", "additionalProperties": false,
+      "required": ["topic", "update"],
+      "properties": { "topic": { "const": "system" }, "update": { "$ref": "#/$defs/systemUpdate" } }
+    },
+    "systemUpdate": {
+      "oneOf": [
+        { "$ref": "#/$defs/networkUpdate" },
+        { "$ref": "#/$defs/bluetoothUpdate" },
+        { "$ref": "#/$defs/audioUpdate" },
+        { "$ref": "#/$defs/mediaUpdate" },
+        { "$ref": "#/$defs/batteryUpdate" },
+        { "$ref": "#/$defs/brightnessUpdate" },
+        { "$ref": "#/$defs/nightLightUpdate" },
+        { "$ref": "#/$defs/powerUpdate" },
+        { "$ref": "#/$defs/osdUpdate" },
+        { "$ref": "#/$defs/lockUpdate" }
+      ]
+    },
+    "networkUpdate": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+      "properties": { "domain": { "const": "network" }, "data": { "$ref": "#/$defs/networkCapability" } }
+    },
+    "bluetoothUpdate": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+      "properties": { "domain": { "const": "bluetooth" }, "data": { "$ref": "#/$defs/bluetoothCapability" } }
+    },
+    "audioUpdate": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+      "properties": { "domain": { "const": "audio" }, "data": { "$ref": "#/$defs/audioCapability" } }
+    },
+    "mediaUpdate": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+      "properties": { "domain": { "const": "media" }, "data": { "$ref": "#/$defs/mediaCapability" } }
+    },
+    "batteryUpdate": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+      "properties": { "domain": { "const": "battery" }, "data": { "$ref": "#/$defs/batteryCapability" } }
+    },
+    "brightnessUpdate": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+      "properties": { "domain": { "const": "brightness" }, "data": { "$ref": "#/$defs/brightnessCapability" } }
+    },
+    "nightLightUpdate": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+      "properties": { "domain": { "const": "nightLight" }, "data": { "$ref": "#/$defs/nightLightCapability" } }
+    },
+    "powerUpdate": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+      "properties": { "domain": { "const": "power" }, "data": { "$ref": "#/$defs/powerCapability" } }
+    },
+    "osdUpdate": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+      "properties": { "domain": { "const": "osd" }, "data": { "$ref": "#/$defs/osdCapability" } }
+    },
+    "lockUpdate": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+      "properties": { "domain": { "const": "lock" }, "data": { "$ref": "#/$defs/lockCapability" } }
+    },
+    "compositorDomainUpdate": {
+      "type": "object", "additionalProperties": false,
+      "required": ["topic", "update"],
+      "properties": { "topic": { "const": "compositor" }, "update": { "$ref": "#/$defs/compositorUpdate" } }
+    },
+    "compositorUpdate": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+          "properties": { "domain": { "const": "hyprland" }, "data": { "$ref": "#/$defs/hyprlandCapability" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+          "properties": { "domain": { "const": "monitors" }, "data": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/monitor" } } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+          "properties": { "domain": { "const": "workspaces" }, "data": { "$ref": "#/$defs/workspaceCollection" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+          "properties": { "domain": { "const": "windows" }, "data": { "type": "array", "maxItems": 16384, "items": { "$ref": "#/$defs/window" } } }
+        }
+      ]
+    },
+    "notificationsDomainUpdate": { "$ref": "#/$defs/notificationsUpdateObject" },
+    "notificationsUpdateObject": {
+      "type": "object", "additionalProperties": false, "required": ["topic", "update"],
+      "properties": { "topic": { "const": "notifications" }, "update": { "$ref": "#/$defs/notifications" } }
+    },
+    "launcherDomainUpdate": {
+      "type": "object", "additionalProperties": false, "required": ["topic", "update"],
+      "properties": { "topic": { "const": "launcher" }, "update": { "$ref": "#/$defs/launcher" } }
+    },
+    "calendarDomainUpdate": {
+      "type": "object", "additionalProperties": false, "required": ["topic", "update"],
+      "properties": { "topic": { "const": "calendar" }, "update": { "$ref": "#/$defs/calendar" } }
+    },
+    "weatherDomainUpdate": {
+      "type": "object", "additionalProperties": false, "required": ["topic", "update"],
+      "properties": { "topic": { "const": "weather" }, "update": { "$ref": "#/$defs/weather" } }
+    },
+    "appearanceDomainUpdate": {
+      "type": "object", "additionalProperties": false, "required": ["topic", "update"],
+      "properties": { "topic": { "const": "appearance" }, "update": { "$ref": "#/$defs/appearance" } }
+    },
+    "resourcesDomainUpdate": {
+      "type": "object", "additionalProperties": false, "required": ["topic", "update"],
+      "properties": { "topic": { "const": "resources" }, "update": { "$ref": "#/$defs/resources" } }
+    },
+    "utilitiesDomainUpdate": {
+      "type": "object", "additionalProperties": false, "required": ["topic", "update"],
+      "properties": { "topic": { "const": "utilities" }, "update": { "$ref": "#/$defs/utilityUpdate" } }
+    },
+    "utilityUpdate": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+          "properties": { "domain": { "const": "trayItems" }, "data": { "$ref": "#/$defs/trayItemsCapability" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+          "properties": { "domain": { "const": "clipboardEntries" }, "data": { "$ref": "#/$defs/clipboardEntriesCapability" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+          "properties": { "domain": { "const": "recording" }, "data": { "$ref": "#/$defs/recordingCapability" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+          "properties": { "domain": { "const": "idleInhibited" }, "data": { "$ref": "#/$defs/booleanCapability" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+          "properties": { "domain": { "const": "gameMode" }, "data": { "$ref": "#/$defs/booleanCapability" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+          "properties": { "domain": { "const": "screenshot" }, "data": { "$ref": "#/$defs/producerAvailability" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["domain", "data"],
+          "properties": { "domain": { "const": "colorPicker" }, "data": { "$ref": "#/$defs/producerAvailability" } }
+        }
+      ]
+    },
+    "result": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["schemaVersion", "requestId", "generation", "status"],
+          "properties": {
+            "schemaVersion": { "const": 3 }, "requestId": { "$ref": "#/$defs/uuid" },
+            "generation": { "$ref": "#/$defs/positiveInteger" }, "status": { "const": "succeeded" }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["schemaVersion", "requestId", "generation", "status", "diagnostic"],
+          "properties": {
+            "schemaVersion": { "const": 3 }, "requestId": { "$ref": "#/$defs/uuid" },
+            "generation": { "$ref": "#/$defs/positiveInteger" }, "status": { "const": "failed" },
+            "diagnostic": { "$ref": "#/$defs/diagnostic" }
+          }
+        }
+      ]
+    }
+  }
+}

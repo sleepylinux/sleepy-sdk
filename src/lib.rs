@@ -1,6 +1,7 @@
 //! Versioned public document contracts for Sleepy Linux.
 
 mod desktop;
+mod desktop_runtime;
 mod domains;
 mod events;
 mod keybindings;
@@ -277,6 +278,24 @@ pub use desktop::{
     validate_weather_snapshot, CalendarEvent, CalendarProvider, CalendarSnapshot,
     CalendarSourceError, DesktopLaunchRequest, ForecastPoint, OsdEvent, OsdKind, WeatherLocation,
     WeatherProvider, WeatherSnapshot,
+};
+pub use desktop_runtime::{
+    validate_desktop_envelope, validate_desktop_request, validate_desktop_result,
+    AppearanceCommand, AudioCommand, AudioNode, AudioNodeKind, AudioSnapshot, AudioStream,
+    BatterySnapshot, BluetoothCommand, BluetoothDevice, BluetoothSnapshot, BrightnessSnapshot,
+    ClipboardEntry, DesktopAppearanceSnapshot, DesktopCalendarSnapshot, DesktopCapability,
+    DesktopCommand, DesktopCompositorSnapshot, DesktopCompositorUpdate, DesktopDomainUpdate,
+    DesktopEnvelope, DesktopEvent, DesktopLauncherSnapshot, DesktopNotificationSnapshot,
+    DesktopOsdSnapshot, DesktopPowerSnapshot, DesktopRequest, DesktopResourceSnapshot,
+    DesktopResult, DesktopResultStatus, DesktopSessionCommand, DesktopSnapshot,
+    DesktopSystemCommand, DesktopSystemMutation, DesktopSystemSnapshot, DesktopSystemUpdate,
+    DesktopUtilitySnapshot, DesktopUtilityUpdate, DesktopWeatherSnapshot, DisplayCommand,
+    HyprlandActionCapabilities, HyprlandCommand, HyprlandSnapshot, LauncherCommand, LauncherEntry,
+    LockState, MediaCommand, MediaPlayer, MediaSnapshot, Monitor, NetworkAccessPoint,
+    NetworkCommand, NetworkConnection, NetworkConnectionKind, NetworkSnapshot, NightLightSnapshot,
+    NotificationCommand, PowerCommand, ProducerAvailability, RecordingRegion, RecordingState,
+    RecordingStatus, RecordingTarget, ResourceSample, StableId, TrayItem, TrayMenuNode,
+    UtilityCommand, Window, Workspace, DESKTOP_WIRE_VERSION,
 };
 pub use domains::{
     validate_hardware_capability_snapshot, validate_installation_profile,

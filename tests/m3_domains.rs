@@ -48,6 +48,15 @@ fn theme_document_rejects_unknown_colors_and_insufficient_contrast() {
     });
     validate_theme_document(&valid.to_string()).unwrap();
 
+    for color in ["#aéabc", "#aaéab", "#aaaaé", "#€abc", "#a💤b", "#gg0000"] {
+        let mut invalid = valid.clone();
+        invalid["colors"]["background"] = serde_json::json!(color);
+        assert!(
+            validate_theme_document(&invalid.to_string()).is_err(),
+            "accepted {color}"
+        );
+    }
+
     let mut low_contrast = valid;
     low_contrast["colors"]["textPrimary"] = serde_json::json!("#222232");
     assert!(validate_theme_document(&low_contrast.to_string()).is_err());

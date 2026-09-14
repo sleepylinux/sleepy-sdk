@@ -419,7 +419,7 @@ fn contrast_ratio(foreground: &str, background: &str) -> Result<f64, ContractErr
 }
 
 fn parse_color(value: &str) -> Result<[u8; 3], ContractError> {
-    if value.len() != 7 || !value.starts_with('#') {
+    if value.len() != 7 || !value.starts_with('#') || !value.is_ascii() {
         return Err(ContractError::new("invalid semantic color"));
     }
     let parse = |range| {

@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sleepy-linux.org/schemas/capture/v1/reply.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "payload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "job"
+            },
+            "job": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "jobId": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                    },
+                    "outputId": {
+                      "type": "string",
+                      "pattern": "^output:[A-Za-z0-9_.-]{1,128}$"
+                    },
+                    "state": {
+                      "const": "awaitingConsent"
+                    }
+                  },
+                  "required": [
+                    "jobId",
+                    "outputId",
+                    "state"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "jobId": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                    },
+                    "outputId": {
+                      "type": "string",
+                      "pattern": "^output:[A-Za-z0-9_.-]{1,128}$"
+                    },
+                    "state": {
+                      "const": "capturing"
+                    }
+                  },
+                  "required": [
+                    "jobId",
+                    "outputId",
+                    "state"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "jobId": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                    },
+                    "outputId": {
+                      "type": "string",
+                      "pattern": "^output:[A-Za-z0-9_.-]{1,128}$"
+                    },
+                    "state": {
+                      "const": "completed"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "path": {
+                          "type": "string",
+                          "pattern": "^/run/user/(0|[1-9][0-9]{0,9})/sleepy/captures/screenshot-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.png$"
+                        },
+                        "mimeType": {
+                          "const": "image/png"
+                        },
+                        "width": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 32768
+                        },
+                        "height": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 32768
+                        }
+                      },
+                      "required": [
+                        "path",
+                        "mimeType",
+                        "width",
+                        "height"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "jobId",
+                    "outputId",
+                    "state",
+                    "result"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "jobId": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                    },
+                    "outputId": {
+                      "type": "string",
+                      "pattern": "^output:[A-Za-z0-9_.-]{1,128}$"
+                    },
+                    "state": {
+                      "const": "cancelled"
+                    }
+                  },
+                  "required": [
+                    "jobId",
+                    "outputId",
+                    "state"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "jobId": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                    },
+                    "outputId": {
+                      "type": "string",
+                      "pattern": "^output:[A-Za-z0-9_.-]{1,128}$"
+                    },
+                    "state": {
+                      "const": "failed"
+                    },
+                    "diagnostic": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "unavailable",
+                            "busy",
+                            "notFound",
+                            "invalidRequest",
+                            "outputUnavailable",
+                            "consentTimedOut",
+                            "captureFailed",
+                            "cancelled"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256,
+                          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "jobId",
+                    "outputId",
+                    "state",
+                    "diagnostic"
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "job"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "capabilities"
+            },
+            "screenshot": {
+              "type": "boolean"
+            },
+            "colorPicker": {
+              "const": false
+            }
+          },
+          "required": [
+            "type",
+            "screenshot",
+            "colorPicker"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "error"
+            },
+            "diagnostic": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "enum": [
+                    "unavailable",
+                    "busy",
+                    "notFound",
+                    "invalidRequest",
+                    "outputUnavailable",
+                    "consentTimedOut",
+                    "captureFailed",
+                    "cancelled"
+                  ]
+                },
+                "message": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "diagnostic"
+          ]
+        }
+      ]
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "payload"
+  ],
+  "$comment": "Rust validation additionally enforces UID u32 range, matching jobId in the PNG filename, and the 256-byte diagnostic limit. Filesystem ownership and actual PNG content require provider checks."
+}

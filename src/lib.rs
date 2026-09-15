@@ -1,5 +1,7 @@
 //! Versioned public document contracts for Sleepy Linux.
 
+mod capture;
+pub use capture::*;
 mod desktop;
 mod desktop_runtime;
 mod domains;

@@ -1,6 +1,7 @@
 //! Opt-in capture v1 endpoint. This does not extend the closed desktop v3 stream.
 //!
-//! PNG paths are session-local temporary results, retained until session end.
+//! PNG paths are session-local temporary results, retained until history eviction
+//! or session end. Consumers must export a result to keep it.
 //! These validators check syntax, not filesystem ownership, PNG bytes, or consent:
 //! the session provider must enforce those before publishing completion.
 use serde::{Deserialize, Deserializer, Serialize};

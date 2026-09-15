@@ -74,16 +74,18 @@ Only `failed` contains `diagnostic`: a fixed error `code` and a bounded, plain-t
 omitted, not null. Initial capabilities advertise `colorPicker: false`.
 
 The provider owns at most one active job per user, limits consent waiting to
-120 seconds, and retains only bounded terminal job history. Duplicate begin
+120 seconds, and retains at most 16 job records. Duplicate begin
 with the same ID and target must not create another prompt; reusing that ID for
 a different target is rejected. Cancellation and a terminal job's status are
 idempotent while its record is retained. An unknown or evicted ID returns
 `notFound`. Backend shutdown cancels and reaps owned work.
 
 The result is a temporary session file under
-`/run/user/<uid>/sleepy/captures/screenshot-<jobId>.png`, retained until session
-end; consumers must explicitly export it to keep it. History eviction must not
-delete another job's or an unrelated file. The SDK checks canonical UUIDs,
+`/run/user/<uid>/sleepy/captures/screenshot-<jobId>.png`, retained until that job
+is evicted from history or the session ends, whichever happens first. Consumers
+must explicitly export it before then to keep it. History eviction may remove
+only the recorded result inode belonging to the session user; it must preserve
+replacement files and unrelated files. The SDK checks canonical UUIDs,
 output names, filename/ID agreement, path syntax, dimensions, and state/result
 invariants. The provider must additionally verify the actual user's runtime
 directory, no symlink escape, file ownership, PNG bytes/dimensions, and genuine
